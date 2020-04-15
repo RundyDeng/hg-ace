@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Items>
+  <Item>
+    <ServerName>(local)</ServerName>
+    <ServerPort>5055</ServerPort>
+    <ClientPort>5050</ClientPort>
+    <UServerPort>5052</UServerPort>
+    <UClientPort>6066</UClientPort>
+    <LogName>AED73F6832508BAA</LogName>
+    <LogPwd>AED73F6832508BAA</LogPwd>
+    <DataBase>TMISHgDsc</DataBase>
+    <Auto>0.5</Auto>
+    <AutoSeq>KWH</AutoSeq>
+    <AutoName>AED73F6832508BAA</AutoName>
+    <AutoPass>AED73F6832508BAA</AutoPass>
+    <AutoRunName>AutoRun002</AutoRunName>
+    <AutoRunHide>y</AutoRunHide>
+  </Item>
+</Items>

@@ -1,0 +1,427 @@
+<%@page import="java.util.Map"%>
+<%@ page import="core.util.MathUtils" %> 
+<%@ page import="java.text.DecimalFormat" %>
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="java.util.Calendar"%>
+
+<%@page import=" java.text.ParseException" %>
+<%@page import="java.util.Date" %>
+
+<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix='fmt' uri="http://java.sun.com/jsp/jstl/fmt" %> 
+<%@ taglib prefix="shiro" uri="http://shiro.apache.org/tags" %>
+<c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
+
+<script src="${contextPath}/static/assets/js/jquery.js" type="text/javascript"></script>
+<link rel="stylesheet"
+	href="${contextPath}/static/assets/fromNet/base.css" />
+
+
+<html>
+<head>
+<title>住户详细信息</title>
+</head>
+<body style='background-image: url(""); background-color: rgb(255, 255, 255); height: 100%;'>
+<%
+Calendar c = Calendar.getInstance();
+String today = new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
+	String str = "2017-11-01";
+	long time = new Date().getTime()-(new SimpleDateFormat("yyyy-MM-dd").parse(str)).getTime();
+	long days = time/1000/60/60/24;
+
+	double price=0;//计量单价
+	double cgprice=0;//热费单价
+	double totleCgprice;//热费总价
+	double totlePrice;//计量总价
+	float areaSize=0;//计量面积
+	Map map = (Map)request.getAttribute("obj");
+	int type = MathUtils.getBigDecimal(map.get("CLIENTCATID")).intValue();
+	if(2==type){
+		areaSize = MathUtils.getBigDecimal(map.get("UAREA")).floatValue();
+		price = 0.3;
+		cgprice = 7;
+	}
+	if(3==type){
+		areaSize = MathUtils.getBigDecimal(map.get("UAREA")).floatValue();
+		price = 0.27;
+		cgprice = 6.8;
+	}
+	if(1==type){
+		areaSize = MathUtils.getBigDecimal(map.get("HOTAREA")).floatValue();
+		price = 0.1134;
+		cgprice = 5;
+	}
+	totlePrice = price*areaSize;
+	totleCgprice = cgprice*areaSize;
+//	totlePrice = MathUtils.getBigDecimal(price*areaSize).doubleValue();
+//	totleCgprice = MathUtils.getBigDecimal(cgprice*areaSize).doubleValue();
+			
+%>
+
+<div class="list">
+            <div class="item">
+                <div class="box">
+                    <div class="tit">
+                        <h3 class="icon4">查看住户详细信息</h3>
+                    </div>
+                    
+                    <div id="edit">
+	
+                        <table style="width: 100%" class="table table" border="0" cellpadding="0" cellspacing="0">
+                            <tbody><tr>
+                                <th>
+                                    姓&nbsp;&nbsp;&nbsp; 名：
+                                </th>
+                                <td>
+                                    <input name="txtCLIENTNAME" value="${obj.CLIENTNAME}" id="txtCLIENTNAME" class="input" enablemultistyle="true" style="width: 120px; height: 23px" type="text">
+                                </td>
+                                <th>
+                                    固定电话：
+                                </th>
+                                <td>
+                                    <input name="txtPHONE" value="${obj.PHONE}" id="txtPHONE" class="input" enablemultistyle="true" style="height:23px;width: 120px" type="text">
+                                      
+                                    
+                                </td>
+                                <th>
+                                    手&nbsp;&nbsp; 机：
+                                </th>
+                                <td>
+                                    
+                                    <input name="txtMOBPHONE" value="${obj.MOBPHONE}" id="txtMOBPHONE" class="input" enablemultistyle="true" style="height:23px;width: 120px" type="text">
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    用户编号：
+                                </th>
+                                <td>
+                                    <input name="txtCLIENTNO" value="${obj.CLIENTNO}" id="txtCLIENTNO" class="input" enablemultistyle="true" style="height:23px;width: 120px" type="text">
+                                </td>
+                                <th>
+                                    小&nbsp;&nbsp; 区：
+                                </th>
+                                <td>
+                                    <span id="lblAreaName">${obj2.AREANAME}</span>
+                                </td>
+                                <th>
+                                    地&nbsp;&nbsp; 址：
+                                </th>
+                                <td>
+                                    <span id="Label4">${obj.ADDRESS}</span>
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    供热公司：
+                                </th>
+                                <td>
+                                    <span id="Label5">${obj2.FACTORYNAME}</span>
+                                </td>
+                                <th>
+                                    热 力 站：
+                                </th>
+                                <td>
+                                    <span id="Label6">${obj2.SECTIONNAME}</span>
+                                    
+                                </td>
+                                <th>
+                                    表号：
+                                </th>
+                                <td>
+                                    
+                                    <span id="lblmeter">${obj.METERNO}</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    住户类型：
+                                </th>
+                                <td>
+                                    <select name="ddlcat" id="ddlcat" class="selectputaspx">
+
+										<option value="1">住户</option>
+										<option value="2">经营性</option>
+										<option value="3">非经营性</option>
+
+									</select>
+                                </td>
+                                <th>
+                                    起始日期：
+                                </th>
+                                <td>
+                                    <span id="lblbdate1">2017-11-01</span>
+                                    
+                                </td>
+                                <th>
+                                    起始读数：
+                                </th>
+                                <td>
+                                    <input name="TextBox1" value="${obj1.METERNLLJ}" id="TextBox1" disabled="disabled" class="input" enablemultistyle="true" style="height:23px;width:78px;" type="text">
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    结束日期：
+                                </th>
+                                <td>
+                                    <span id="lbledate1"><%=today %></span>
+                                </td>
+                                <th>
+                                    结束读数：
+                                </th>
+                                <td>
+                                    <input name="TextBox2" value="${obj3.METERNLLJ}" id="TextBox2" disabled="disabled" class="input" enablemultistyle="true" style="height:23px;width:73px;" type="text">
+                                </td>
+                                <th>
+                                    供热天数：
+                                </th>
+                                <td>
+                                    <span id="lblGRTS2"><%=days %>天</span>
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    计量热量：
+                                </th>
+                                <td>
+                                    <span id="lbJLRL2"></span>
+                                    <span id="lbljlrlUnit">KWH</span>
+                                    
+                                </td>
+                                <th>
+                                    建筑面积：
+                                </th>
+                                <td>
+                                    <input name="txtUAREA" value="${obj.UAREA}" id="txtUAREA" class="input" enablemultistyle="true" style="height:23px;width: 50px" type="text">M<sup>2</sup>
+                                </td>
+                                <th>
+                                    使用面积：
+                                </th>
+                                <td style="width: 80px">
+                                    <input name="txtHOTAREA" value="${obj.HOTAREA}" id="txtHOTAREA" class="input" enablemultistyle="true" style="height:23px;width: 50px" type="text">M<sup>2</sup>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    热费单价：
+                                </th>
+                                <td>
+                                    <span id="lblCGPRICE2"><%=cgprice %></span>
+                                    元
+                                </td>
+                                <th>
+                                    面积应缴热费：
+                                </th> 
+                                <td>
+                                    <span id="lblYJRF2"><fmt:formatNumber value="<%=totlePrice %>" pattern='#,##0.00#'/></span>
+                                    
+                                    元
+                                </td>
+                                <th>
+                                    基础热费：
+                                </th> 
+                                <td>
+                                    <span id="lblJCJFE2"><fmt:formatNumber value="<%=totleCgprice %>" pattern='#,##0.00#'/></span>
+                                    元
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    计量单价：
+                                </th>
+                                <td>
+                                    <span id="lblPRICE2"><%=price %></span>
+                                    元
+                                </td>
+                                <th>
+                                    计量热费：
+                                </th>
+                                <td>
+                                    <span id="lblJLJE2">0</span>
+                                    元
+                                </td>
+                                <th>
+                                    计量应缴费：
+                                </th>
+                                <td>
+                                    <span id="lblYJFSE2">0</span>
+                                    元
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    实缴费数额：
+                                </th>
+                                <td>
+                                    
+                                    <input name="txtSJFSE" value="0" id="txtSJFSE" class="input" enablemultistyle="true" style="height:23px;width: 80px" type="text">元
+                                </td>
+                                <th>
+                                    账户结余：
+                                </th>
+                                <td>
+                                    <span id="lblCHJY2">0</span>
+                                    
+                                    元
+                                </td>
+                                <th>
+                                    欠 费 额：
+                                </th>
+                                <td>
+                                    <span id="lblQFE2">0</span>
+                                    元
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    欠费年数：
+                                </th>
+                                <td>
+                                    <span id="lblQFNS2">1</span>
+                                    
+                                </td>
+                                <th>
+                                    滞 纳 金：
+                                </th>
+                                <td>
+                                    <span id="lblZNJ2">0</span>
+                                    元
+                                    
+                                </td>
+                                <th>
+                                    用热状态：&nbsp;
+                                </th>
+                                <td>
+                                    &nbsp;
+                                    <select name="ddlISYESTR" id="ddlISYESTR" class="selectputaspx" style="width:60px;">
+                                    <%
+                                    	int isyestr = MathUtils.getBigDecimal(map.get("ISYESTR")).intValue();
+                                    	if(isyestr==0)
+                                		out.print("<option selected='selected' value='0'>开</option>"
+                                				+"<option value='1'>关</option>");
+                                	else
+                                		out.print("<option  value='0'>开</option>"
+                                				+"<option value='1' selected='selected'>关</option>");
+                                    %>
+                                    </select>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    是否退费：
+                                </th>
+                                <td>
+                                    <span id="lbltf">未退费</span>
+                                </td>
+                                <th>
+                                    是否签约：&nbsp;
+                                </th>
+                                <td colspan="3">
+                                    &nbsp;
+                                    <select name="ddlISYESJL" id="ddlISYESJL" class="selectputaspx" style="width:60px;">
+                                    <%
+                                    	int isyesjl = MathUtils.getBigDecimal(map.get("ISYESJL")).intValue();
+                                    	if(isyesjl==0)
+                                    		out.print("<option selected='selected' value='0'>否</option>"
+                                    				+"<option value='1'>是</option>");
+                                    	else
+                                    		out.print("<option  value='0'>否</option>"
+                                    				+"<option value='1' selected='selected'>是</option>");
+                                    %>
+                                    </select>
+                                    
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>
+                                    备&nbsp;&nbsp; 注：
+                                </th>
+                                <td colspan="5">
+                                    <textarea name="txtremark" rows="2" cols="20" id="txtremark" class="input" enablemultistyle="true" style="width:473px;"></textarea>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th colspan="6">
+                                    选择年度：<select name="DropDownList1" id="DropDownList1" class="selectputaspx" style="width: 120px">
+								<option value="2011-2012">2011-2012</option>
+								<option value="2012-2013">2012-2013</option>
+								<option value="2013-2014">2013-2014</option>
+								<option value="2014-2015">2014-2015</option>
+								<option value="2015-2016">2017-2018</option>
+								<!-- <option selected="selected" value="2015-2016">2015-2016</option> -->
+								<option value="2016-2017">2016-2017</option>
+								<!-- <option value="2017-2018">2017-2018</option> -->
+								<option selected="selected" value="2017-2018">2017-2018</option>
+								<option value="2018-2019">2018-2019</option>
+								<option value="2020-2021">2020-2021</option>
+						
+							</select>
+                                    <input name="btcx" value="季度查询" id="btcx" class="button2" onmouseover="this.className='button2over'" onmouseout="this.className='button2'" type="button">
+                                    <input name="btSave" value="保存修改" id="btSave" class="button2" onmouseover="this.className='button2over'" onmouseout="this.className='button2'" type="button">&nbsp;
+                                    <input id="cbISYES" name="cbISYES" onclick="javascript:delit();" type="checkbox">
+                                    <label for="cbISYES">记录退费</label>
+                                    &nbsp;
+                                    <input name="btnPrint" value="退费单打印" id="btnPrint" class="button2" onmouseover="this.className='button2over'" onmouseout="this.className='button2'" type="botton">&nbsp;&nbsp;
+                                    <input name="Button1" value="关闭窗口" onclick="javascript:window.close();" id="Button1" class="button2" onmouseover="this.className='button2over'" onmouseout="this.className='button2'" type="botton">
+                                </th>
+                            </tr>
+                        </tbody>
+                        </table>
+                        
+                    
+</div>
+                </div>
+            </div>
+        </div>
+</body>
+</html>
+
+<script>
+	$(function(){
+		
+		var clientcatid = '${obj.CLIENTCATID}';
+		$('#ddlcat option[value="'+clientcatid+'"]').attr("selected",true);
+		
+		$('#btSave').click(function(){
+			
+			if($('#txtCLIENTNO').val()==''||$('#txtCLIENTNO').val()==undefined){
+				alert("用户编号不能为空！");
+				return;
+			}
+			$.ajax({
+				url : '${contextPath}/baseinfomanage/clientinfo/operClientInfo',
+				type : 'POST',
+				data : {
+					oper:"edit",
+					CLIENTNO:$('#txtCLIENTNO').val(),
+					CLIENTNAME:$('#txtCLIENTNAME').val(),
+					PHONE:$('#txtPHONE').val(),//固定电话
+					HOTAREA:$('#txtUAREA').val(),//建筑面积  - - 不要被id名迷惑
+					UAREA:$('#txtHOTAREA').val(),//使用面积- - 不要被id名迷惑
+					CLIENTCAT:$('#ddlcat').val(),//住户类型ID
+					ISYESTR:$('#ddlISYESTR').val(),//是否停热
+					ISYESJL:$('#ddlISYESJL').val(),  //是否签约
+					MOBPHONE:$('#txtMOBPHONE').val(),//手机
+					CLIENTID:'${obj.CLIENTID}'
+				},
+				dataType : 'json',
+				success : function(data){
+					if(data==true)
+						alert("修改成功!");
+					else
+						alert("修改失败!");
+				}
+				
+			});
+			
+		});
+	})
+	
+	
+	
+</script>

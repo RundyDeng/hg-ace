@@ -1,0 +1,167 @@
+<%@ page language="java" contentType="text/html; charset=utf-8" pageEncoding="utf-8" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="java.util.Calendar"%>
+<c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+<title></title>
+<link rel="stylesheet" href="${contextPath}/static/assets/css/bootstrap.css" />
+<link rel="stylesheet" href="${contextPath}/static/assets/css/jquery-ui.css" />
+<link rel="stylesheet" href="${contextPath}/static/assets/css/ui.jqgrid.css" />
+<link rel="stylesheet" href="${contextPath}/static/pageclock/compiled/flipclock_statistic.css" />
+<link rel="stylesheet" href="${contextPath}/static/litdatepicker.css" />
+<link rel="stylesheet" href="${contextPath}/static/assets/css/ace.css" class="ace-main-stylesheet" id="main-ace-style" />
+<style type="text/css">
+		.table-bordered, .table-bordered td, .table-bordered th{
+			border: 1px solid #c6cbce;
+		}
+		tbody th{
+			font-weight: unset;
+		}
+		</style>
+</head>
+<body>
+<form class="form-inline">
+<div class="form-group">
+
+	<label for="bpeople">被记录人：</label>
+	<input type="text" class="form-control" id="bname" placeholder="被记录人" >
+<%
+Calendar c = Calendar.getInstance();
+String enddate = new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
+c.add(Calendar.DATE, -7);
+String startdate = new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
+%>
+</div>
+    <div class="form-group">
+	<label for="startdate">开始时间：</label>
+
+	<input type="text"  class="form-control" value="<%=startdate %>" id="input_sel_sdate" readonly="readonly" aria-describedby="basic-addon3">
+	</div><div class="form-group">
+	<label for="enddate">结束时间：</label>
+	<input type="text"  class="form-control" value="<%=enddate %>" id="input_sel_edate" readonly="readonly" aria-describedby="basic-addon3">
+	</div>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<button type="button" class="btn btn-success" id="searchdata" >查询</button>
+	&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+	<button type="button" class="btn btn-success" id="exportdata" >导出EXCEL</button>
+	
+	</br>
+	</br>
+    <div class="row">
+    <div class="col-xs-12" style="text-align: center;">
+		 <table id="operData" class="table table-bordered table-hover table-striped" style="margin-bottom: 0px;">
+					  <thead>
+					    <tr >
+					      <th style="text-align: center;">序号</th>
+					      <th style="text-align: center;">记录人</th>
+					      <th style="text-align: center;">日期</th>
+					      <th style="text-align: center;">备注</th>
+					     
+					    </tr>
+					  </thead>
+					  <tbody id="operlog">
+					    
+					  </tbody>
+					</table>
+				 <div id="operlog_pagination">
+			      		
+			      </div>
+		</div>
+     </div>
+</form>
+</body>
+</html>
+<script>
+var scripts = [ null,'${contextPath}/static/assets/js/jquery-ui.js',
+                "${contextPath}/static/assets/js/jqGrid/i18n/grid.locale-cn.js",
+                "${contextPath}/static/pageclock/compiled/flipclock.js",null ];
+var page = 1;
+var pagesize=20;
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	$("#input_sel_sdate").datepicker({
+		dateFormat: 'yy-mm-dd',
+		defaultDate : new Date(),
+   });
+	$("#input_sel_edate").datepicker({
+		dateFormat: 'yy-mm-dd',
+		defaultDate : new Date(),
+   });
+   $('#searchdata').click(function(){
+	page = 1;
+	getoperlog();
+   });
+   $('#exportdata').click(function(){
+	   exportExcel();
+	   });
+});
+var go = function(e){
+	page = e;
+	getoperlog();
+}
+ function getoperlog(){
+	 var sdate = $('#input_sel_sdate').val();
+	 var edate = $('#input_sel_edate').val();
+	 var username=$('#bname').val();
+	 var areaName = $('#searchdata').val();
+	 $.get('${contextPath}/baseinfomanage/SystemOperLog/getsystemoperlog?page='+page+'&username='+username+'&pagesize='+pagesize+'&sdate=' + sdate +'&edate=' + edate,function(response){
+		 	var target = jQuery.parseJSON(response);
+			var data = target['data'];
+			var pageCount = target['pageCount'];
+			
+			var str = '';
+			if(data.length>0){
+				for(var i=0 ; i<data.length ; i++){
+					
+					var obj = data[i];
+					
+					str += '<tr ><th style="text-align: center;">'+(pagesize*(page-1)+i+1)+'</th><th style="text-align: center;">'+obj['USERNAME']+'</th><th style="text-align: center;">'+obj['OPERDATE']+'</th><th style="text-align: center;">'+obj['OPERATION']+'</tr>';
+				}
+			}
+			$('#operlog').empty();
+			$('#operlog').append(str);
+			
+			var pageHtml = '<nav><ul class="pagination">'
+			if(page == 1){
+				pageHtml += '<li class="disabled"><a href="javascript:void(0);" aria-label="Previous">';
+			}else{
+				pageHtml += '<li><a href="javascript:go('+(page-1)+');" aria-label="Previous">';
+			}
+			pageHtml +=  '<span aria-hidden="true">&laquo;</span><span class="sr-only">Previous</span></a></li>';
+			for(var i = 0 ;i<pageCount;i++){
+				var j = i+1;
+				if(page==j){
+					pageHtml += '<li class="active"><a href="javascript:void(0);">'+j+' <span class="sr-only">(current)</span></a></li>';
+				}else{
+					pageHtml += '<li><a href="javascript:go('+j+')">'+j+'</a></li>';
+				}
+				
+			}
+			if(page==pageCount){
+				pageHtml += '<li class="disabled"><a href="javascript:void(0);" aria-label="Next">'
+			}else{
+				pageHtml += '<li><a href="javascript:go('+(page+1)+')" aria-label="Next">';
+			}
+			pageHtml += '<span aria-hidden="true">&raquo;</span><span class="sr-only">Next</span></a></li></ul></nav>';			
+				
+			$('#operlog_pagination').empty(); 
+			if(data.length>0){
+				$('#operlog_pagination').append(pageHtml); 
+			}
+		});
+}
+ var title = '系统操作日志';
+ var exportExcel = function(){
+	   var sdate=$('#input_sel_sdate').val();
+	   var edate=$('#input_sel_edate').val();
+	   var username=$('#bname').val();
+	   var form = "<form name='csvexportform' action='${contextPath}/baseinfomanage/SystemOperLog/exportoperlog?title="+title+"&sdate="+sdate+"&edate="+edate+"&username="+username+"' method='post'>";
+ 	   form = form + "<input type='hidden' name='csvBuffer' value='" + encodeURIComponent(1) + "'>";
+ 	   form = form + "</form><script>document.csvexportform.submit();</sc" + "ript>";
+ 	   OpenWindow = window.open('', '导出数据','width=500,height=300');
+ 	   OpenWindow.document.write(form);
+ 	   OpenWindow.document.close();
+	}
+</script>

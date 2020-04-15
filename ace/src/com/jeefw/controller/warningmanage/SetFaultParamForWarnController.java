@@ -1,0 +1,46 @@
+package com.jeefw.controller.warningmanage;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.log4j.Logger;
+import org.apache.xmlbeans.impl.xb.xsdschema.Public;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.jeefw.app.logic.Transmission;
+import com.jeefw.controller.IbaseController;
+import com.jeefw.model.haskey.Warringsparmset;
+import com.jeefw.service.warningmanage.SetFaultParamForWarnService;
+
+@Controller
+@RequestMapping("/warningmanage/setfaultparamforwarncontr")
+public class SetFaultParamForWarnController extends IbaseController {
+	@Resource
+	private SetFaultParamForWarnService setFaultParamSvr;
+	
+	@RequestMapping("/getsetfaultpara")
+	public void getSetFaultPara(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		List<Warringsparmset> obj = setFaultParamSvr.doQueryAll(1);
+		if(obj.size()==0)
+			writeJSON(response, "");
+		else
+		writeJSON(response, obj.get(0));
+	}
+	
+	@RequestMapping("/updatesetfaultpara")
+	public void updateSetFaultPara(HttpServletRequest request,HttpServletResponse response,Warringsparmset objModel) throws IOException{
+		try {
+			objModel.setId(1);
+			setFaultParamSvr.merge(objModel);
+			writeJSON(response, true);
+		} catch (Exception e) {
+			writeJSON(response, e);
+		}
+		
+	}
+}

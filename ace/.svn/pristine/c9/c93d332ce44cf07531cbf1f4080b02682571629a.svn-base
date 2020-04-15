@@ -1,0 +1,98 @@
+package com.jeefw.controller.baseinfomanage;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+
+import core.support.JqGridPageView;
+
+@Controller
+@RequestMapping("/baseinfomanage/setmeterfailure")
+public class SetMeterFailure extends IbaseController{
+	@Resource
+	private IBaseDao basedao;
+	
+	@RequestMapping("/getmeterfailure")
+	public void getMeterFailure(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		
+		String sql = "select FailureID,FailureCode,FailureName,failurecondition,f.areaguid,areaname,areacode "
+					+" from TFailureCode f "
+					+" left join tarea a "
+					+" on a.areaguid = f.areaguid"//;
+					+" where f.areaguid = " +getSessionAreaGuids()
+					+" order by f.areaguid";
+		List list = basedao.listSqlAndChangeToMap(sql, null);
+		
+		
+		JqGridPageView listView = new JqGridPageView();
+
+		listView.setRows(list);
+		listView.setRecords(list.size());
+		
+		writeJSON(response, listView);
+	}
+	
+	@RequestMapping("/opermeterfailure")
+	public void operMeterFailure(HttpServletRequest request,HttpServletResponse response){
+
+		String oper = request.getParameter("oper");
+		
+		if (oper.equals("del")) {
+			String delSql = "delete TFailureCode where FAILUREID = " + getParm("id");
+			basedao.execuSql(delSql, null);
+		} else if (oper.equals("excel")) {
+			response.setContentType("application/msexcel;charset=UTF-8");
+			try {
+				response.addHeader("Content-Disposition", "attachment;filename=file.xls");
+				OutputStream out = response.getOutputStream();
+				out.write(URLDecoder.decode(request.getParameter("csvBuffer"), "UTF-8").getBytes());
+				out.flush();
+				out.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (oper.equals("edit")) {
+			if("".equals(getParm("FAILUREID"))){
+				System.out.println("FAILUREID is empty");
+			}else{
+				
+				String updateSql = "update TFailureCode set FailureCode='" + getParm("FAILURECODE") + "',"
+						+ " FailureName = '" + getParm("FAILURENAME") + "',"
+						+ " failurecondition ='" + getParm("FAILURECONDITION") + "',"
+						+ " areaguid = '" + getParm("AREANAME") + "'"
+						+ " where FAILUREID = " + getParm("FAILUREID");
+				
+				basedao.execuSql(updateSql, null);
+				
+			}
+		
+		}else if (oper.equals("add")) {
+			int newTableId = basedao.getIntNextTableId("TFailureCode", "FAILUREID");
+			
+			if(newTableId == 0){
+				
+			}else{
+				
+				String addSql = "insert into TFailureCode(FAILUREID,FailureCode,FailureName,failurecondition,areaguid) values "
+						+ " ( " + newTableId + ",'" + getParm("FAILURECODE") + "','" + getParm("FAILURENAME") + "','"
+						+ getParm("FAILURECONDITION") + "','" + getParm("AREANAME") + "')";
+
+				basedao.execuSql(addSql, null);
+				
+			}
+		
+		}
+	}
+	
+}

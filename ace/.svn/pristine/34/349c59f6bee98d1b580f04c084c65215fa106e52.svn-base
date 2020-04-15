@@ -1,0 +1,20 @@
+.mini-box {
+	min-height: 75px;
+}
+.zq-skin .sidebar-toggle {
+    border-color: #e5e5e5;
+}
+.zq-skin .nav-list > li {
+    border-color: #e5e5e5;
+}
+.zq-skin #navbar {
+    background: #00BCD4;
+    box-shadow: 0px 4px 2px 0px rgba(0, 0, 0, 0.12);
+}
+.light-blue {
+	width: 150px;
+	border-left: 0.1px solid #fff;
+}
+.ace-nav > li.light-blue > a {
+    background-color: #09AEC3;
+}

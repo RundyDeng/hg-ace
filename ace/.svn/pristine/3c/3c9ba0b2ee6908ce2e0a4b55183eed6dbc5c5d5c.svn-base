@@ -1,0 +1,33 @@
+<%@ page language="java" contentType="text/html; charset=utf-8"
+	pageEncoding="utf-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
+
+<div class="container-fluid" style="background-color: #f7f7f9;">
+		<form>
+			<fieldset class="form-group">
+				<legend>选择数据表</legend>
+				<select id="chot-sel" multiple class="form-control" style="width: 310px;">
+					<option value="">表一（2015-2016年度）</option>
+					<!-- <option>表二（2014-2015年度）</option> -->
+					<option value="2013">表三（2013-2014年度）</option> <!-- 2013/10/1   2014/9/30 -->
+					<option value="2012">表四（2012-2013年度）</option>
+					<option value="2011">表五（2011-2012年度）</option>
+					<option value="2010">表六（2010-2011年度）</option>
+				</select>
+			</fieldset>
+			
+			<button type="button" id="choose-table" class="btn btn-primary">保存</button>
+		</form>
+</div>
+
+<script>
+$('.page-content-area').ace_ajax('loadScripts', [], function() {
+	$('#choose-table').click(function(){
+		$.get('${contextPath}/sys/chooseTableContr/updateChooseTable?tab=' + $('#chot-sel').val(),function(response){
+			if(response==1)
+				alert("设置成功！");
+		});
+	});
+});
+</script>

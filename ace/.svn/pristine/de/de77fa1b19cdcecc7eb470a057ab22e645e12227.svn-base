@@ -1,0 +1,60 @@
+package com.jeefw.controller.monitorData;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.google.gson.Gson;
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+import com.jeefw.service.pub.PubService;
+@Controller
+@RequestMapping("/monitorData/zlcharts")
+public class ZlChartsController  extends IbaseController{
+	@Resource
+	private IBaseDao baseDao;
+	@Resource
+	private PubService todayDataService;
+	@RequestMapping("/getzlData")
+	public void getzlData(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		printRequestParam();
+		String zl=request.getParameter("zl");
+		String areaguid=request.getParameter("areaguid");
+		String doorno=request.getParameter("doorno");
+		String sdate=request.getParameter("sdate");
+		String edate=request.getParameter("edate");
+		
+		String where = " where 1=1 ";
+		if(StringUtils.isNotBlank(getParm("customerid"))){
+			where += " and customerid = " + getParm("customerid");
+		}else{
+			List<Map> tdoor_meter=baseDao.listSqlAndChangeToMap("select * from tdoor_meter where areaguid="+areaguid+" and doorno="+doorno, null);
+			where += " and meterid='"+tdoor_meter.get(0).get("METERNO")+"'";
+		}
+		String sql="select to_char(ddate,'yyyy-MM-dd') as ddate,round("+zl+",2) as "+zl+" from tmeter_day "
+				        + where + " and areaguid="+areaguid
+						+ " and ddate between to_date('"+sdate+" 00:00:00','yyyy-MM-dd HH24:mi:ss') and"
+						+ " to_date('"+edate+" 23:59:59','yyyy-MM-dd HH24:mi:ss') "
+						+ " order by ddate asc";
+		List<Map> list=baseDao.listSqlAndChangeToMap(sql, null);
+		//使用Google的Json工具  
+		Gson gson = new Gson();  
+		//将JSON串返回  
+		PrintWriter out = response.getWriter();  
+		out.print(gson.toJson(list));  
+		out.flush();  
+		out.close();  
+  }
+}

@@ -1,0 +1,123 @@
+package com.jeefw.controller.baseinfomanage;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+import com.jeefw.service.pub.PubService;
+
+import core.support.JqGridPageView;
+import core.util.StringUtilsForController;
+
+@Controller
+@RequestMapping("/baseinfomanage/badeInfoSearchContr")
+public class BaseInfoSearchController extends IbaseController {
+	@Resource
+	private PubService todayDataService;
+	@Resource
+	private IBaseDao baseDao;
+	
+	@RequestMapping("/getBaseInfoSearch")
+	public void getBaseInfoSearch(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		String sql = "select * from vmbasisdata "+getSqlWhere();
+		Long count = baseDao.countSql(sql);
+		if(StringUtilsForController.isNotBlank(getParm("sidx"))&&StringUtilsForController.isNotBlank(getParm("sord"))){
+			sql += " order by " + getParm("sidx") + " " +getParm("sord");
+		}
+		List list =  baseDao.listSqlPageAndChangeToMap(sql, getCurrentPage(), getShowRows(), null);
+		HttpSession session = request.getSession();
+		session.setAttribute("BASEINFOSEARCH", getSqlWhere());
+		JqGridPageView listView = new JqGridPageView();
+		listView.setMaxResults(getShowRows());//其实就是pageSize
+		listView.setRows(list);
+		listView.setRecords(count);
+		writeJSON(response, listView);
+	}
+	
+	@RequestMapping("/updateBaseInfoSearch")
+	public void updateBaseInfoSearch(HttpServletRequest request , HttpServletResponse response){
+		String oper = getParm("oper");
+		if("excel".equals(oper)){
+			 String  sqlwhere = (String) request.getSession().getAttribute("BASEINFOSEARCH");
+			String areaname = todayDataService.getAreanameById(getParm("areaguid"))+"基础信息";
+			areaname = areaname.replaceAll(" ", "");
+			String excSql = "select AREAGUID,AREANAME,BUILDCODE,BUILDNAME,UNITNO,FLOORNO,DOORNAME,METERID,CLIENTNO,"
+					+ " METERSEQ,POOLADDR,CHANNELNO,GPRSID,COMMTYPE,REMARK,DEVICETYPECHILDNO,NO1 "
+					+ " from vmbasisdata "+sqlwhere;
+			List list = baseDao.findBySql(excSql);
+			
+			HSSFWorkbook wb = new HSSFWorkbook();
+			HSSFSheet sheet = wb.createSheet("sheet1");
+			sheet.setDefaultColumnWidth(15);
+			HSSFCellStyle cellBorder = wb.createCellStyle();
+            cellBorder.setBorderLeft(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setBorderRight(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setBorderTop(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setBorderBottom(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setAlignment(HSSFCellStyle.ALIGN_CENTER); 
+    		HSSFFont font = wb.createFont();
+            font.setFontName("仿宋_GB2312");
+            font.setFontHeightInPoints((short) 10);
+    		cellBorder.setFont(font);
+            cellBorder.setWrapText(true);
+            HSSFRow row;
+            HSSFCell cell;
+            if(list.size()>0){
+            	String strTitles = "小区号，小区名称，楼宇号，楼宇名称，单元号，楼层号，门牌，热表号，用户编号"
+            			+ "，表序，集中器地址，通道号，交换机地址，通讯类型，设备备注，表类型，故障参数";
+            	
+            	setExcelTitleStr(strTitles, wb , sheet);
+
+            	for (int i = 0; i < list.size(); i++) {
+            		
+                	row = sheet.createRow(i+1);
+                	row.setHeight((short)360);
+                	Object[] os =  (Object[])list.get(i);
+    				for (int j = 0; j < os.length; j++) {
+    					cell = row.createCell(j);
+    					if(os[j] == null){
+    						cell.setCellValue("");
+    					}else{
+    						cell.setCellValue(os[j].toString());
+    					}
+    					cell.setCellStyle(cellBorder);
+    				}
+    			}
+            }
+            
+			try {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                wb.write(baos);
+                response.addHeader("Content-Disposition", "attachment;filename="
+						+ new String( areaname.getBytes("gb2312"), "ISO8859-1" ) + ".xls");
+                response.setContentType("application/vnd.ms-excel");
+                response.setContentLength(baos.size());
+                ServletOutputStream out1 = response.getOutputStream();
+                baos.writeTo(out1);
+                out1.flush();
+                out1.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+}

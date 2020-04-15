@@ -1,0 +1,88 @@
+package com.jeefw.controller.baseinfomanage;
+
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.URLDecoder;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+
+import core.support.JqGridPageView;
+
+@Controller
+@RequestMapping("/baseinfomanage/deviceinfomanage")
+public class DeviceInfoManage extends IbaseController {
+	@Resource
+	private IBaseDao baseDao;
+
+	@RequestMapping("/getdeviceinfo")
+	public void getDeviceInfo(HttpServletRequest request, HttpServletResponse response) throws IOException {
+		String sql = "select id,dtype,dcode,daddress,dremark,AreaGuid,GPRSID,AreaName from TDEVICEINFO order by AreaGuid,dCODE";
+		List list = baseDao.listSqlAndChangeToMap(sql, null);
+		JqGridPageView view = new JqGridPageView();
+		view.setRecords(list.size());
+		view.setRows(list);
+		writeJSON(response, view);
+	}
+
+	@RequestMapping("/operdeviceinfo")
+	public void operDeviceInfo(HttpServletRequest request, HttpServletResponse response) {
+		printRequestParam();
+		String oper = getParm("oper");
+		if (oper.equals("del")) {
+			String delSql = "delete TDEVICEINFO where id =" + getParm("id");
+			baseDao.execuSql(delSql, null);
+		} else if (oper.equals("excel")) {
+			response.setContentType("application/msexcel;charset=UTF-8");
+			try {
+				response.addHeader("Content-Disposition", "attachment;filename=file.xls");
+				OutputStream out = response.getOutputStream();
+				out.write(URLDecoder.decode(request.getParameter("csvBuffer"), "UTF-8").getBytes());
+				out.flush();
+				out.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+		} else if (oper.equals("add")) {
+			int newTableId = baseDao.getIntNextTableId("TDEVICEINFO", "id");
+
+			if (newTableId == 0) {
+
+			} else {
+				String rsql = "select areaname from tarea where areaguid = " + getParm("AREANAME"); 
+				List list = baseDao.findBySqlList(rsql, null);
+				String areaname = (String)list.get(0);
+				String addSql = "insert into TDEVICEINFO values(" + newTableId + ",'" + getParm("DTYPE") + "'" + ",'"
+						+ getParm("DCODE") + "'" + ",'" + getParm("DADDRESS") + "'" + ",'" + getParm("DREMARK") + "'" + ",'"
+						+ getParm("AREANAME") + "'" + ",'" + getParm("GPRSID") + "'" + ",'" + areaname + "')";
+
+				baseDao.execuSql(addSql, null);
+
+			}
+
+		} else if (oper.equals("edit")) {
+			String rsql = "select areaname from tarea where areaguid = " + getParm("AREANAME"); 
+			List list = baseDao.findBySqlList(rsql, null);
+			String areaname = (String)list.get(0);
+			String updateSql = "update TDEVICEINFO set DTYPE ='" + getParm("DTYPE") + "',"
+					+ " DCODE = '" + getParm("DCODE") + "',"
+					+ " DADDRESS ='" + getParm("DADDRESS") + "',"
+					+ " DREMARK = '" + getParm("DREMARK") + "',"
+					+ " AREAGUID = '" + getParm("AREANAME") + "',"
+					+ " AREANAME = '" + areaname + "'"
+					+ " where ID = " + getParm("ID");
+			
+			baseDao.execuSql(updateSql, null);
+			
+		}
+	}
+
+}

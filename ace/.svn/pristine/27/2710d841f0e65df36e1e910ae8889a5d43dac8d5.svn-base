@@ -1,0 +1,82 @@
+﻿package com.jeefw.service.home.impl;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.jeefw.dao.IBaseDao;
+import com.jeefw.service.home.HomePageService;
+
+@Service
+@Transactional
+public class HomePageServiceImpl implements HomePageService {
+	@Resource
+	private IBaseDao baseDao;
+
+	@Override
+	public List listAreaUseEnergy() {
+		String gSql = "select * from " 
+				+" (select round(sum(t.eachtotal),0) as \"y\",t.areaname as \"name\",t.areaguid "
+				+" from "
+				+" ( "
+				+"select max(m.MeterNLLJ)-min(m.MeterNLLJ) as eachtotal,t_m.meterno,t_m.areaguid,a.areaname "
+				+" from tdoor_meter t_m "
+				+" inner join tmeter m "
+				+" on m.meterid = t_m.meterno and t_m.areaguid = m.areaguid "
+				+" inner join tclient c "
+				+" on c.clientno = t_m.clientno and c.areaguid = t_m.areaguid "
+				+" inner join tarea a "
+				+" on t_m.areaguid = a.areaguid "
+				+" where m.autoid = 1 "
+				+" and m.ddate between to_date('2016-03-18','yyyy-MM-dd') and to_date('2016-03-18','yyyy-MM-dd')+1 "
+				//+" and m.ddate between to_date('2015-10-01','yyyy-MM-dd') and sysdate "
+				+" group by t_m.areaguid,a.areaname,t_m.meterno "
+				+" ) t "
+				+" group by t.areaguid,t.areaname "
+				+ " ) "
+				+" order by \"y\" desc";
+		List list = baseDao.listSqlAndChangeToMap(gSql, null);
+		return list;
+	}
+
+	@Override
+	public List areaUseEnergyForDay() {
+		String sql = "select m.areaguid,m.areaguidname as areaname,count(m.customerid) as customer,nvl(sum(m.area),0) as area,to_char(m.ddate,'yyyy-MM-dd') as ddate,round(sum(m.reliang),2) as area_energy"
+				+ " from tmeter_day m"
+				+ " where m.ddate  = (select max(ddate) from tmeter_day)"
+				+ " group by m.areaguid,m.areaguidname,m.ddate"
+				+ " order by area_energy desc";
+		List list = baseDao.listSqlAndChangeToMap(sql, null);
+		return list;
+	}
+
+	@Override
+	public List inOutWarterByDay() {
+		
+		String day= baseDao.findBySql("select to_char(max(ddate),'yyyy-MM-dd') as day from tmeter_tmp").get(0).toString();
+		day = "2016-04-10";
+		String sql = "select '"+day+"' as day,Round(avg(TM.MeterJSWD),2)as 平均进水温度,Round(avg(TM.MeterHSWD),2)as 平均回水温度,Round(avg(TM.MeterWC),2)as 平均温差 , TM.AreaGuid as 小区编号 "
+					+" ,(select areaname from tarea where areaguid = tm.areaguid) as 小区名,count(tc.clientno) as 住户数,sum(tc.hotarea) as 供热面积,c.factoryname as 能源公司,b.sectionname 换热站"
+					+" from tmeter_tmp TM "
+					+" inner join TDoor_Meter tdm "
+					+" on tdm.MeterNo = tm.MeterID and tdm.AreaGuid = tm.AreaGuid "
+					+" inner join TArea Ta "
+					+" on Ta.AreaGuid = TM.AreaGuid "
+					+" inner join tclient tc "
+					+" on tc.areaguid = tdm.areaguid and tc.clientno = tdm.clientno "
+					+" left join FACTORYSECTIONINFO b "
+					+" on ta.FACTORYNO = b.sectionid "
+					+" left join ENERGYFACTORY c "
+					+" on c.FACTORYID = b.FACTORYID "
+					+" where to_char(tm.ddate,'YYYY-MM-DD')='" + day + "' "
+					+" and tm.autoid=1 and tm.MeterJSWD<100 "
+					+" group by tm.areaguid,c.factoryname,b.sectionname";
+		List list = baseDao.listSqlAndChangeToMap(sql, null);
+		
+		return list;
+	}
+	
+}

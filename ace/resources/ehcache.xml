@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache>
+	<diskStore path="java.io.tmpdir/jeefw-ehcache" />
+
+<!-- 体现出 ehcache 在项目中的效率提升 
+	这个对象是应用层的缓存组件;你可以理解为,持久层从数据库查询出来的对象,交给ehcache保管
+	,下次持久层再需要的时候ehcache直接返回给持久层
+,不查询数据库;当持久层需要改变某数据时,会让ehcache更新直接的备份并且保存到数据库... -->
+
+
+<!--name: cache的名字，用来识别不同的cache，必须惟一。    
+
+		maxElementsInMemory：缓存最大个数。
+       	eternal:对象是否永久有效，一但设置了，timeout将不起作用。
+        overflowToDisk：当内存中对象数量达到maxElementsInMemory时，Ehcache将会对象写到磁盘中。
+        timeToIdleSeconds： 设置对象在失效前的允许闲置时间（单位：秒）。仅当eternal=false对象不是永久有效时使用，可选属性，默认值是0，也就是可闲置时间无穷大。
+        timeToLiveSeconds：设置对象在失效前允许存活时间（单位：秒）。最大时间介于创建时间和失效时间之间。仅当eternal=false对象不是永久有效时使用，默认是0.，也就是对象存活时间无穷大。
+        diskPersistent：是否缓存虚拟机重启期数据
+        diskExpiryThreadIntervalSeconds：磁盘失效线程运行时间间隔，默认是120秒。
+        
+         -->
+	<defaultCache maxElementsInMemory="1000" eternal="false"
+		overflowToDisk="true" timeToIdleSeconds="300" timeToLiveSeconds="180"
+		diskPersistent="false" diskExpiryThreadIntervalSeconds="120" />
+
+	<cache name="org.hibernate.cache.internal.StandardQueryCache"
+		maxElementsInMemory="1000" eternal="false" timeToLiveSeconds="120"
+		overflowToDisk="true" />
+	<cache name="org.hibernate.cache.spi.UpdateTimestampsCache"
+		maxElementsInMemory="500" eternal="true" overflowToDisk="true" />
+
+	<cache name="all" maxElementsInMemory="1000" eternal="false"
+		overflowToDisk="true" timeToIdleSeconds="120" timeToLiveSeconds="120"
+		diskPersistent="false" diskExpiryThreadIntervalSeconds="120" />
+</ehcache>

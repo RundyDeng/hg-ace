@@ -1,0 +1,411 @@
+<%@ page language="java" contentType="text/html; charset=utf-8"
+	pageEncoding="utf-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@page import="java.text.DateFormat"%>
+<%@page import="java.util.Date"%>
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="java.util.Calendar"%>
+<%@page import="java.util.GregorianCalendar"%>
+<c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+	<!-- <meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport"
+		content="width=device-width, 
+	                                     initial-scale=1.0, 
+	                                     maximum-scale=1.0, 
+	                                     user-scalable=no"> -->
+	<title>供热大数据智慧运行系统</title>
+	<link rel="stylesheet"
+	href="${contextPath}/static/assets/css/bootstrap.css" />
+		<link rel="stylesheet" href="${contextPath}/static/assets/css/jquery-ui.css" />
+		<link rel="stylesheet" href="${contextPath}/static/assets/css/ui.jqgrid.css" />
+		<link rel="stylesheet" href="${contextPath}/static/pageclock/compiled/flipclock_statistic.css" />
+		
+	<link rel="stylesheet" href="${contextPath}/static/litdatepicker.css" />
+	<link rel="stylesheet" href="${contextPath}/static/assets/css/ace.css"
+	class="ace-main-stylesheet" id="main-ace-style" />
+
+	<style type="text/css">
+		.table-bordered, .table-bordered td, .table-bordered th{
+			border: 1px solid #c6cbce;
+		}
+		tbody th{
+			font-weight: unset;
+		}
+	
+		
+.ui-dialog .ui-dialog-titlebar-close::before, .ui-jqdialog .ui-dialog-titlebar-close::before, .ui-dialog .ui-jqdialog-titlebar-close::before, .ui-jqdialog .ui-jqdialog-titlebar-close::before {
+
+    content: "x";
+    }
+		
+	</style>
+</head>
+<body>
+
+	<div class="container-fluid" style="background-color: #f7f7f9;">
+		
+<style>
+     .flip-clock-wrapper ul{
+        margin: 3px;
+    }
+    #build_th th{
+        min-width: 69px;
+    }   
+   
+</style>
+		
+<br/>
+		<div class="row" style="height: 30px;">
+			
+			<div class="col-md-3">
+				<div class="input-group">
+					  <span class="input-group-addon" id="basic-addon3">选择小区: </span>
+					  <select id="search_areaname" class="form-control">
+					  	
+					  </select>
+					  <!-- <input type="text" class="form-control" id="search_areaname"  aria-describedby="basic-addon3"> -->
+				</div>
+			</div>
+			
+			<div class="col-md-3">
+				<div class="input-group" >
+					  <span class="input-group-addon" id="basic-addon3">开始时间：</span>
+<%
+String today = "";
+String weekAgo = "";
+String attrDate= (String)request.getParameter("day");
+if(attrDate!=""&&attrDate!=null){
+ 	Calendar cal = new GregorianCalendar();
+ 	DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+ 	Date parseDate = df.parse(attrDate);
+ 	cal.setTime(parseDate);
+ 	cal.add(Calendar.DATE, +1);
+ 	today = new SimpleDateFormat("yyyy-MM-dd").format(cal.getTime());
+ 	weekAgo = attrDate ;
+}else{
+	Calendar c = Calendar.getInstance();
+	today = new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
+	c.add(Calendar.DATE, -7);
+	weekAgo = new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
+}
+%>
+					  <input type="text" class="form-control" value="2016-01-01" id="input_sel_date" readonly="readonly" aria-describedby="basic-addon3">
+				</div>
+			</div>
+			
+			<div class="col-md-3">
+				<div class="input-group" >
+					  <span class="input-group-addon" id="basic-addon3">结束时间：</span>
+					  <input type="text" class="form-control" value="<%=today %>" id="input_sel_date2" readonly="readonly" aria-describedby="basic-addon3">
+				</div>
+			</div>
+			
+			<div class="col-md-2">
+				<button type="button" class="btn btn-success" id="build_data_search">查&nbsp;&nbsp;&nbsp;&nbsp;询</button>
+			</div>
+		</div>
+		
+		<br/>
+		
+		<div class="row" style="overflow: auto; margin-left: 1px; margin-right: 1px;">
+		    
+			      
+			      <table id="build_table" class="table table-bordered table-hover table-striped" style="margin-bottom: 0px;">
+					  <thead>
+					    <tr id="build_th">
+					      
+					    </tr>
+					  </thead>
+					  <tbody id="build_td">
+                        
+				      </tbody>
+					</table>
+			      
+			      
+ 		 </div>
+        
+        <div class="row" style="margin-left: 1px; margin-right: 1px;word-break:break-all;">
+            <div class="col-md-7" style="border:0px solid red;overflow-x: hidden;">
+              
+				<div id="3d-column" style="min-width:770px;margin-left: -120px;min-height: 450px;"></div>
+            </div>
+            <div class="col-md-5" style="border:0px solid red;min-height: 450px;">
+            	
+                <div id="3d-pie"></div>
+            </div>
+        </div>
+         
+		
+	</div>
+	
+	
+</body>
+</html>
+
+<script>
+    
+    
+var scripts = [ null,'${contextPath}/static/assets/js/jquery-ui.js',
+                "${contextPath}/static/assets/js/jqGrid/i18n/grid.locale-cn.js",
+                "${contextPath}/static/pageclock/compiled/flipclock.js",
+                "${contextPath}/static/Highcharts-4.2.5/js/highcharts.js",
+                "${contextPath}/static/Highcharts-4.2.5/js/highcharts-3d.js",
+	   			"${contextPath}/static/Highcharts-4.2.5/js/modules/data.js",
+	   			"${contextPath}/static/Highcharts-4.2.5/highslide-full.min.js",
+	   			"${contextPath}/static/Highcharts-4.2.5/highslide.config.js",
+	   			/* "${contextPath}/static/Highcharts-4.2.5/js/modules/exporting.js", */
+                ,null ];
+var page = 1;          
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	
+	$("#input_sel_date").datepicker({
+    		dateFormat: 'yy-mm-dd',
+    		defaultDate : new Date(),
+	});
+	
+    $("#input_sel_date2").datepicker({
+       dateFormat: 'yy-mm-dd',
+        defaultDate: new Date() -7
+    });
+    
+	
+	
+	$.get('${contextPath}/sys/todaydata/getAreaDownList',function(data){
+		var urlParm = '<%=(String)request.getParameter("areaguid") %>';
+		var areaguid = '<%=(String)request.getSession().getAttribute("areaGuids") %>';
+		if( urlParm != 'null' && urlParm != '') areaguid = urlParm;
+		
+		var flagName = '';
+			var response = jQuery.parseJSON(data);
+		      var s = '';
+		      if (response && response.length) {
+		          for (var i = 0, l = response.length; i < l; i++) {
+			           var ri = response[i];
+		        	   s += '<option value="' + ri['AREAGUID'] + '">' + ri['AREANAME'] + '</option>';   
+		          }
+		       }
+		      
+		      s += "<script>$('select option[value=\""+areaguid+"\"]').change().attr('selected',true);</sc"+"ript>  ";
+		      
+		      $('#search_areaname').empty().append(s);
+		      if('<%=attrDate%>'!=""&&'<%=attrDate%>'!='null') $('#build_data_search').click();
+	})
+	$('#build_data_search').click();
+});
+$('#build_data_search').click(function(){
+	var startDate = $('#input_sel_date').val();
+    var endDate = $('#input_sel_date2').val();
+    var areaguid = $('#search_areaname').val();
+	if(areaguid==null) {
+		areaguid='<%=(String)request.getSession().getAttribute("areaGuids") %>';
+	}
+    $.get('${contextPath}/dataanalysis/builddatastatiscontr/getbuilddatastatis?areaguid='+areaguid+'&startdate='+startDate+'&enddate='+endDate,function(response){
+        var jsonData = jQuery.parseJSON(response);
+        showTable(jsonData);           
+        showColumn(jsonData);
+	    showPie(jsonData);
+	    _J_setAreaGuid(onSearch_putDown_areaguid('search_areaname'),onSearch_putDown_areaname('search_areaname'));
+    })
+	
+});
+    
+	function getType(o)
+	{
+	    var _t;
+	    return ((_t = typeof(o)) == "object" ? o==null && "null" || Object.prototype.toString.call(o).slice(8,-1):_t).toLowerCase();
+	}
+	function extend(destination,source)
+	{
+	    for(var p in source)
+	    {
+	        if(getType(source[p])=="array"||getType(source[p])=="object")
+	        {
+	            destination[p]=getType(source[p])=="array"?[]:{};
+	            arguments.callee(destination[p],source[p]);
+	        }
+	        else
+	        {
+	            destination[p]=source[p];
+	        }
+	    }
+	}
+    
+    
+    
+    function roundFix(cellvalue){
+		if(cellvalue==''||cellvalue==undefined)
+			return 0;
+		return cellvalue.toFixed(2);
+    }
+	
+    var array_build_name = new Array();
+    var array_build_data_column = new Array();
+    var array_build_data_pie = new Array();
+    var array_build = new Array();
+    var array_build_2 = new Array();
+    var array_build_pie = [];
+    
+    var showTable = function(objs){
+        array_build = [];
+        array_build_2 = [];
+        array_build_name = [];
+        array_build_data_pie = [];
+        array_build_data_column = [];
+        array_build_name.push(null);
+       
+        array_build_data_column.push('平均每平米耗热(KWH/M2)');
+        array_build_data_pie.push('各小区间耗热比');
+        
+        var th = '<th style="min-width: 170px;">分析项目</th>';
+        var td1 = '<td>总耗热量(KWH)</td>';
+        var td2 = '<td>分析对象(户数)</td>';
+        var td3 = '<td>平均每平米耗热(KWH/M2)</td>';
+        
+        var pieTd = '<td>pie</td>';
+        var _sum = 0.0;
+        $(objs).each(function(i,obj){
+            if(obj.BUILD_AVERAGE_ENERTY!=-1){
+                _sum += parseFloat(roundFix(obj.BUILD_AVERAGE_ENERTY));
+            }
+        })
+        $(objs).each(function(index,obj){
+            array_build_name.push(obj.BUILDNAME);
+            th += '<th><a href="'+$path_base+'/sys/sysuser/home#page/energyConsumingStatis?areaguid='+obj['AREAGUID']+'&buildno='+obj['BUILDNO']+'&bdate='+$('#input_sel_date').val()+'&edate='+$('#input_sel_date2').val()+'">'+obj.BUILDNAME+'</a></th>';
+            td1 += '<td>'+roundFix(obj.BUILD_ENERGY)+'</td>';
+            td2 += '<td>'+obj.CLIENT_TOTLE+'</td>';
+            if(obj.BUILD_AVERAGE_ENERTY==-1){
+                td3 += '<td></td>';
+                array_build_data_column.push(null);
+                array_build_data_pie.push(0);
+            }else{
+                td3 += '<td>'+roundFix(obj.BUILD_AVERAGE_ENERTY)+'</td>';
+                pieTd += '<td>'+parseFloat(roundFix(roundFix(obj.BUILD_AVERAGE_ENERTY)/_sum))+'</td>';
+                array_build_data_column.push(roundFix(obj.BUILD_AVERAGE_ENERTY));
+                array_build_data_pie.push(parseFloat(roundFix(roundFix(obj.BUILD_AVERAGE_ENERTY)/_sum)));
+            }
+        });
+		
+        //最后tr仅做测试用
+        var td = '<tr>' + td1 + '</tr><tr>' + td2 + '</tr><tr>' + td3 + '</tr><tr style="display:none;">' + pieTd + '</tr>';
+        
+        $('#build_th').empty().append(th);
+        $('#build_td').empty().append(td);
+       
+        array_build.push(array_build_name);
+        array_build.push(array_build_data_column);
+        array_build_2.push(array_build_name);
+        array_build_2.push(array_build_data_pie);
+		extend(array_build_pie,array_build_2);
+    };
+	
+    
+	var showPie = function(objs){
+	    $('#3d-pie').highcharts({
+	    	data : {
+		 		columns: array_build_pie
+		 		/*table: document.getElementById('build_table'),
+		 		startRow: 3,
+		 		endRow: 4,
+		 		startColumn: 1*/
+		 	},
+		 	exporting: {
+                enabled:false
+    		},
+	        chart: {
+	        	backgroundColor: 'rgb(247, 247, 249)',
+	            type: 'pie',
+	            options3d: {
+	                enabled: true,
+	                alpha: 45,
+	                beta: 0
+	            }
+	        },
+	        credits: {
+	            enabled: false  
+	        },
+	        title: {
+	            text: '小区楼栋每平米单耗数据饼状图'
+	        },
+	        tooltip: {
+	            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+	        },
+	        plotOptions: {
+	            pie: {
+	                allowPointSelect: true,
+	                cursor: 'pointer',
+	                depth: 35,
+	                dataLabels: {
+	                    enabled: true,
+	                    format: '{point.name}'
+	                }
+	            }
+	        }
+	    });
+	}
+
+	var showColumn = function(objs){
+		 $('#3d-column').highcharts({
+			 	data : {
+			 		columns: array_build
+			 		/* table: document.getElementById('build_table'),
+			 		startRow: 2,
+			 		endRow: 3,
+			 		startColumn: 0 */
+			 	},
+			 	exporting: {
+	                enabled:false
+	    		},
+		        chart: {
+		        	backgroundColor: 'rgb(247, 247, 249)',
+		            type: 'column',
+		            options3d: {
+		                enabled: true,
+		                alpha: 5,
+		                beta: 25,
+		                depth: 70 
+		            }
+		        },
+		        title: {
+		            text: '小区楼栋每平米单耗数据柱状图'
+		        },
+		        credits: {
+		          enabled: false  
+		        },
+		        plotOptions: {
+		            column: {
+		                depth: 60
+		            }
+		        },
+		        tooltip: {
+		            formatter: function() {
+		                return '<b>'+this.key+'</b><br/><b>每平米耗热'+ this.y +'KWH</b><br/>'
+		            }
+		        },
+		        xAxis: {
+		            //categories: array_build_name,
+		            title: {
+		                text: '小区楼栋'
+		            }
+		        },
+		        yAxis: {
+		            title: {
+		                text: '平均每平米热耗(KWH/M2)'
+		            }
+		        },
+		        series: [{
+		            //name: '当前仅一条数据列',
+		            colorByPoint: true,
+		            
+                    //data: [2, 3, null, 4, 0, 5,7,2]
+		        }],
+		        legend: {
+		        	enabled: false
+		        }
+		    });
+	}
+ 
+</script>

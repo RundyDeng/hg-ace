@@ -1,0 +1,429 @@
+<%@page import="core.util.MathUtils"%>
+<%@page import="java.math.BigDecimal"%>
+<%@page import="java.util.Map"%>
+<%@ page language="java" contentType="text/html; charset=utf-8"
+	pageEncoding="utf-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="shiro" uri="http://shiro.apache.org/tags"%>
+<%@ taglib uri="http://java.sun.com/jsp/jstl/fmt" prefix="fmt"%>
+<%@page import="core.util.MathUtils"%>
+<c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
+<link rel="stylesheet"
+	href="${contextPath}/static/assets/css/jquery-ui.css" />
+<link rel="stylesheet"
+	href="${contextPath}/static/assets/css/ui.jqgrid.css" />
+<link rel="stylesheet"
+	href="${contextPath}/static/assets/css/chartsreports/morris.css" />
+<link rel="stylesheet"
+	href="${contextPath}/static/Highcharts-4.2.5/highslide.css" />
+<link rel="stylesheet"
+	href="${contextPath}/static/assets/css/jquery.gritter.css" />
+<link rel="stylesheet"
+	href="${contextPath }/static/pages/css/homepage.css" />
+<script src="${contextPath }/static/pages/js/homepage.js"></script>
+<script src="${contextPath }/static/pages/js/customer.btn.treeview.js"></script>
+<script src="${contextPath }/static/pages/js/fuelux.tree2.js"></script>
+<%
+	Map map = (Map) request.getAttribute("headMap");
+	double zcsum = MathUtils.getBigDecimal(map.get("ZCSUM")).doubleValue();
+	double totcbsum = MathUtils.getBigDecimal(map.get("TOTCBSUM")).doubleValue();
+	double normalRate = 0;
+	if (totcbsum != 0) {
+		normalRate = zcsum / totcbsum * 100;
+	}
+%>
+
+
+<div class="row">
+	<div id="content" class="content-container">
+		<div class="page page-profile ng-scope">
+
+			<div>
+				<header class="profile-header home-backimg">
+					<div>
+						<div class="row">
+							<div class="col-sm-3 top-size">
+								<div class="profile-img" style="width: 50%;">
+									<a href="${contextPath }/sys/sysuser/home#page/nationalMap" title="地图显示" data-addtab="nationalMap" url="nationalMap"><img alt="" id="mapImg" src="${contextPath}/static/pages/img/xp1.jpg" class="img-circle"></a>
+								</div>
+								<div class="profile-social">
+									<a href="home#page/sysuserprofile" title="修改个人信息" data-addtab="sysuserprofile" url="sysuserprofile" class="btn-icon btn-icon-round btn-instagram"><i class="fa fa-edit"></i></a>
+								</div>
+							</div>
+							<div class="col-sm-5 top-size" style="overflow-x:hidden;">
+								<div class="row">
+									<div class="col-xs-12 padding-0" style="margin-bottom: 10px;">
+										<b nowrap>您好： ${sessionScope.SESSION_SYS_USER.userName}
+											，欢迎使用承德热力集团能源监测平台供热计量管理系统</b>
+<%-- 
+<%										
+    Integer hitsCount = (Integer)application.getAttribute("hitCounter"); 
+    if( hitsCount ==null || hitsCount == 0 ){
+       /* 第一次访问 */
+       hitsCount = 1;
+    }else{
+       /* 返回访问值 */
+       hitsCount += 1;
+    }
+    application.setAttribute("hitCounter", hitsCount);
+%>
+
+<p>页面访问次数: <%= hitsCount%></p> 
+ --%>
+
+
+									</div>
+								</div>
+								<div nowrap class="row" style="margin-bottom: 2px;">
+									<div class="col-xs-6 padding-0">
+										<i class="fa fa-check pink"></i>&nbsp;当前供暖季： <b>2017-2018</b><%-- //${headStatisticsDate } --%>
+									</div>
+
+									<div class="col-xs-6 padding-0">
+										<i class="fa fa-send-o light-green"></i>&nbsp;管理小区数量： <b>${headMap.AREASUM } 个</b>
+									</div>
+								</div>
+								<div class="row" style="margin-bottom: 2px;">
+									<div class="col-xs-6 padding-0">
+										<i class="fa fa-lastfm grey"></i>&nbsp;管理住户数量： <b>${headMap.TOTZHSUM }户</b>
+									</div>
+									<div class="col-xs-6 padding-0">
+										<i class="fa fa-rss blue"></i>&nbsp;远程抄回热表数量： <b>${headMap.TOTCBSUM }个</b>
+									</div>
+								</div>
+								<div class="row">
+									<div class="col-xs-6 padding-0">
+										<i class="fa fa-share green"></i>&nbsp;正常热表数量： <a title="正常抄表" href="${contextPath }/sys/sysuser/home#page/statisticForAnalysis?date=${headStatisticsDate }" data-addtab="statisticForAnalysis1" url="statisticForAnalysis?date=${headStatisticsDate }"><b>${headMap.ZCSUM }个</b></a>
+									</div>
+									<div class="col-xs-6 padding-0">
+										<i class="fa fa-smile-o orange"></i>&nbsp;未抄表数量： <a title="未抄表" href="${contextPath }/sys/sysuser/home#page/statisticForAnalysis?date=${headStatisticsDate }&statusflag=wcbsum" data-addtab="statisticForAnalysis2" url="statisticForAnalysis?date=${headStatisticsDate }&statusflag=wcbsum"><b>${headMap.WCSUM } 个</b></a>
+									</div>
+								</div>
+
+							</div>
+
+							 <div enable=false class="col-sm-4" id="zxtq" style="padding-left: 60px; padding-top: 10px;">
+								<iframe disabled="disabled"
+									src="http://www.thinkpage.cn/weather/weather.aspx?uid=U9E8140050&cid=CHHE030000&l=zh-CHS&p=SMART&a=5&u=C&s=5&m=2&x=1&d=0&fc=FFFFFF&bgc=&bc=&ti=0&in=1&li="
+									frameborder="0" scrolling="no" width="240" height="160" style="max-height: 180px;"
+									allowTransparency="true"></iframe>
+							</div> 
+						</div>
+
+					</div>
+				</header>
+			</div>
+
+			<div id="home-customer-btns" class="row ui-section" style="margin-bottom: 0px;">
+			</div>
+
+			<div class="content">
+				<div class="container-fluid">
+					<div class="row">
+						<div class="card">
+							<div class="row">
+								<div class="col-sm-12">
+									<div class="header">
+										<h4 class="title h-tit-style" style="display: inline;">
+											<i class="ace-icon fa fa-caret-right orange"></i> 各小区最新信息统计
+										</h4>
+										<div style="float: right;">
+											<button id="chart-switch" type="button"
+												class="btn btn-primary"
+												style="border-width: 0px; margin-left: 5px; padding: 3px 6px;">完整显示</button>
+											<button id="area-newspaper-switch" type="button"
+												class="btn btn-primary"
+												style="border-width: 0px; margin-left: 5px; padding: 3px 6px;">显示表格</button>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-12">
+									<div class="widget-body">
+										<div class="widget-main no-padding" style="overflow-x: auto;">
+
+											<div id="area-newspaper" style="height: 400px; width: auto;"></div>
+											<div id="area-newspaper-table"
+												style="height: 400px; width: auto; display: none">
+												<table class="table table-bordered table-striped">
+													<thead class="thin-border-bottom">
+														<tr>
+															<td nowrap="nowrap">序号</td>
+															<td nowrap="nowrap">能源公司</td>
+															<td nowrap="nowrap">换热站</td>
+															<td nowrap="nowrap">统计日期</td>
+															<td nowrap="nowrap">小区名称</td>
+															<td nowrap="nowrap">住户数</td>
+															<td nowrap="nowrap">供热面积</td>
+															<td nowrap="nowrap">平均进水温度</td>
+															<td nowrap="nowrap">平均回水温度</td>
+															<td nowrap="nowrap">平均温差</td>
+														</tr>
+													</thead>
+													<tbody>
+													</tbody>
+												</table>
+
+											</div>
+
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			
+			<div class="content">
+				<div class="container-fluid">
+					<div class="row">
+						<div class="card" style="overflow: hidden;">
+							<div class="row">
+								<div class="col-sm-5">
+									<div class="header" style="padding-bottom: 0px; margin-bottom: 8px;">
+										<h4 class="title h-tit-style" style="margin-bottom: 15px;"><i class="ace-icon fa fa-caret-right orange"></i>耗热量统计</h4>
+									</div>
+								</div>
+
+								<div class="col-sm-7">
+									<div style="float: right;">
+											<button id="switch-table-energy" type="button" class="btn btn-primary" style="margin-top: 20px; z-index: 100;border-width: 0px; margin-left: 5px; padding: 3px 6px;">显示表格</button>
+									</div>
+								</div>
+							</div>
+							
+							<div class="row">
+								<div class="col-sm-5" style="padding-right: 0px; overflow: hidden;">
+									<div class="table-responsive" style="margin-top: -50px;">
+										<div id="everyday-energy" style="height: 300px; display: none;">
+											<table class="table table-bordered table-striped">
+												<thead class="thin-border-bottom">
+													<tr>
+														<th nowrap="nowrap"></th>
+														<th nowrap="nowrap">小区</th>
+														<th nowrap="nowrap">日期</th>
+														<th nowrap="nowrap">耗热量</th>
+													</tr>
+												</thead>
+												<tbody>
+												</tbody>
+											</table>
+										</div>
+										
+										<div id="energy-left-highchart" style="height: 350px; display: show;"></div>
+									</div>
+
+
+								</div>
+								
+								<div class="col-sm-7" style="margin-top: -30px;">
+									<div class="widget-box transparent"
+										style="overflow: hidden; height: 330px;">
+										<div class="widget-body table-responsive">
+											<div id="quarter-energy" style="height: 330px; display:none;">
+												<table class="table table-bordered table-striped">
+													<thead class="thin-border-bottom">
+														<tr style="background: #F2F2F2; background-image: -webkit-linear-gradient(top, #f8f8f8 0%, #ececec 100%);">
+															<th nowrap="nowrap"></th>
+															<th nowrap="nowrap">小区</th>
+															<th nowrap="nowrap">住户数</th>
+															<th nowrap="nowrap">面积</th>
+															<th nowrap="nowrap">季度</th>
+															<th nowrap="nowrap">耗热量</th>
+														</tr>
+													</thead>
+													<tbody>
+													</tbody>
+												</table>
+											</div>
+											
+											<div id="3d-columnxs" style="margin-left: -70px; margin-right: -50px; height: 350px;"></div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+
+	<!-- 		<div class="content">
+				<div class="container-fluid">
+					<div class="row">
+						<div class="card" style="padding-bottom: 10px;">
+							<div class="row">
+								<div class="col-sm-12">
+									<div class="header" style="margin-bottom: 5px;">
+										<h4 class="title h-tit-style" style="display: inline;">
+											<i class="ace-icon fa fa-caret-right orange"></i> 故障统计
+										</h4>
+										<div style="float: right;">
+											<button id="warning-more" type="button" data-addtab="searchfaultparamwarn" title="故障统计"
+												class="btn btn-primary" url="searchfaultparamwarn"  
+												style="border-width: 0px; margin-left: 5px; padding: 3px 6px;">更多...</button>
+										</div>
+									</div>
+								</div>
+							</div>
+							<div class="row">
+								<div class="col-sm-12">
+
+									<div class="widget-body">
+										<div class="widget-main no-padding">
+											<table id="getwarninginfo"></table>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+ -->
+		</div>
+
+	</div>
+</div>
+
+
+<%-- 添加自定义按钮模态 --%>
+<div id="modal-table" class="modal fade" tabindex="-1"
+	data-backdrop="static">
+	<div class="modal-dialog">
+		<form id="informationForm">
+			<div class="modal-content">
+				<div class="modal-header no-padding">
+					<div class="table-header">
+						<button type="button" class="close" data-dismiss="modal"
+							aria-hidden="true">
+						</button>
+						自定义按钮
+					</div>
+				</div>
+				<div class="modal-body"
+					style="max-height: 450px; overflow-y: scroll;">
+					<div id="modal-tip" class="red clearfix"></div>
+					<input id="but-seq" hidden />
+					<input id="cust-btn-id" value="" hidden />
+					<div class="widget-box widget-color-blue2">
+						<div class="widget-body">
+							<div class="widget-main padding-8">
+								<ul id="authorityTree"></ul>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="modal-footer no-margin-top">
+					<div class="text-center">
+						<div class="btn-group" data-toggle="buttons" title="按钮背景色">
+							<label class="btn btn-danger"> 
+								<input type="radio" name="btn_bg_class" id="option1" autocomplete="off" value="bg-danger">红色
+							</label> 
+							<label class="btn btn-warning"> 
+								<input type="radio" name="btn_bg_class" id="option2" autocomplete="off" value="bg-warning">黄色
+							</label> 
+							<label class="btn btn-success"> 
+								<input type="radio" name="btn_bg_class" id="option3" autocomplete="off" value="bg-success">绿色
+							</label>
+							<label class="btn btn-info"> 
+								<input type="radio" name="btn_bg_class" id="option4" autocomplete="off" value="bg-info">淡蓝
+							</label>
+							<label class="btn btn-primary"> 
+								<input type="radio" name="btn_bg_class" id="option5" autocomplete="off" value="bg-primary">蓝色
+							</label>
+						</div>
+					</div>
+					<div class="text-center" style="margin-top:10px;">
+						<button id="submitButton" type="button" class="btn btn-success">
+							保存</button>
+						<button id="cancelBtn" class="btn btn-primary" data-dismiss="modal">取消</button>
+					</div>
+				</div>
+			</div>
+		</form>
+	</div>
+</div>
+
+<!-- 图形按钮弹出层  start -->
+<div class="content home-pic-float" id="home-pic-float">
+	<div class="container-fluid">
+		<div class="row">
+			<div class="card" style="padding: 5px 10px 5px 10px; margin-bottom: 15px; background: oldlace;">
+				<div class="row">
+					<div class="col-sm-4 home-btn-pic">
+					    <div class="fir-row"> 
+							<div class="ih-item ih-material">
+				                <a href="${contextPath }/sys/sysuser/home#page/housingmap">
+				                    <div class="img">
+				                        <img src="${contextPath}/static/pages/img/dt.jpg" alt="">
+				                    </div>
+				                    <div class="info">
+				                        <div class="info-mask bg-primary"></div>
+				                        <div class="info-content">
+				                            <div class="info-inner">
+				                                <h3>小区地图</h3>
+				                                <p>从地图上显示小区信息</p>
+				                            </div>
+				                        </div>
+				                    </div>
+				                </a>
+				            </div>
+					    </div>
+					</div>
+					
+					<div class="col-sm-4 home-btn-pic">
+					    <div class="fir-row"> 
+							<div class="ih-item ih-material">
+				                <a href="${contextPath }/sys/sysuser/home#page/areagif">
+				                    <div class="img">
+				                        <img src="${contextPath}/static/pages/img/qt1.jpg" alt="">
+				                    </div>
+				                    <div class="info">
+				                        <div class="info-mask mask2 bg-info"></div>
+				                        <div class="info-content">
+				                            <div class="info-inner">
+				                                <h3>供热站图形</h3>
+				                                <p>图形方式显示供热站信息</p>
+				                            </div>
+				                        </div>
+				                    </div>
+				                </a>
+				            </div>
+					    </div>
+					</div>
+					
+					<div class="col-sm-4 home-btn-pic">
+					    <div class="fir-row"> 
+							<div class="ih-item ih-material">
+				                <a href="javascript:;">
+				                    <div class="img">
+				                        <img src="http://dev.wang-guanjia.com/Content/dist/images/assets/600_400-3.jpg" alt="">
+				                    </div>
+				                    <div class="info">
+				                        <div class="info-mask mask3 bg-dark"></div>
+				                        <div class="info-content">
+				                            <div class="info-inner">
+				                                <h3>Only You</h3>
+				                                <p>Only You.........</p>
+				                            </div>
+				                        </div>
+				                    </div>
+				                </a>
+				            </div>
+					    </div>
+					</div>
+					
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+<!-- 图形按钮弹出层  end -->
+
+<script>
+$(function(){
+	$('#tabs').aceAddtabs();
+})
+</script>

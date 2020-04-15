@@ -1,0 +1,56 @@
+package com.jeefw.controller.dataAnalysis;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+import com.jeefw.model.common.TBAuth;
+import com.sun.xml.internal.ws.resources.HttpserverMessages;
+
+@Controller
+@RequestMapping("/dataanalysis/buildtemperaturecontr")
+public class BuildTemperatureController extends IbaseController {
+	@Resource
+	private IBaseDao baseDao;
+	
+	@RequestMapping("/getbuildtemperature")
+	public void getBuildTemperature(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		String areaguid = getParm("areaguid");
+		String date = getParm("date");
+		String sql = "select case when (instr(c.楼栋号,'栋')>0) then c.楼栋号 else (c.楼栋号||'栋') end as 楼栋号,c.平均进水温度,c.平均回水温度,c.平均温差,d.户数,d.buildno"
+					//"select c.楼栋号 as buildno,c.平均进水温度 as avgInTemp,c.平均回水温度 as avgBackTemp,c.平均温差 as avgTmpDistance ,d.户数 as doorTotle "
+					+"\n from( "
+					+"\n select 楼栋号,Round(avg(进水温度),2)as 平均进水温度,Round(avg(回水温度),2)as 平均回水温度,Round(avg(温差),2)as 平均温差 "
+					+"\n from( "
+					+"\n SELECT MeterJSWD AS 进水温度, MeterHSWD AS 回水温度, MeterWC AS 温差, TM.DDate AS 时间, tm.AreaGuid AS 小区编号 "
+					+"\n ,Ta.AreaName AS 小区名称,AutoID AS 抄表批次,tb.BuildName AS 楼栋号 "
+					+"\n from TMeter TM "
+					+"\n inner join TDoor_Meter tdm "
+					+"\n on tdm.MeterNo = tm.MeterID and tdm.AreaGuid = tm.AreaGuid "
+					+"\n left join TDoor td "
+					+"\n on td.DoorNo=tdm.DoorNo "
+					+"\n left join TBuild tb "
+					+"\n on tb.AreaGuid = tm.AreaGuid and td.BuildNo = tb.BuildNo "
+					+"\n left join TArea Ta "  
+					+"\n on Ta.AreaGuid = TM.AreaGuid "
+					+"\n ) VMeterInfo "
+					+"\n where 小区编号='"+areaguid+"' and to_char(时间,'YYYY-MM-DD')='"+date+"' "
+					+"\n and 抄表批次=1 and 进水温度<100 group by 楼栋号 "
+					+"\n ) c "
+					+"\n left join ( select areaguid,buildno,bname as buildname,count(clientno) as 户数  from vclientinfo where "
+					+"\n areaguid="+areaguid+" group by areaguid,buildno,bname  ) d "
+					+"\n on d.BuildName=c.楼栋号 "
+					+"\n order by to_number(REGEXP_REPLACE (楼栋号,  '[^0-9]+',  '')) asc";
+		System.out.println("buildteamper::"+sql);
+	 	List list = baseDao.listSqlAndChangeToMap(sql, null);
+	 	writeJSON(response, list);
+	}
+}

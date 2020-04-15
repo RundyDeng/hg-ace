@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xmlns:context="http://www.springframework.org/schema/context"
+		xmlns:aop="http://www.springframework.org/schema/aop"
+		xmlns:tx="http://www.springframework.org/schema/tx"
+		xmlns:mvc="http://www.springframework.org/schema/mvc"
+		xmlns:task="http://www.springframework.org/schema/task"  
+		xsi:schemaLocation="http://www.springframework.org/schema/beans classpath:org/springframework/beans/factory/xml/spring-beans-4.0.xsd
+				http://www.springframework.org/schema/context classpath:org/springframework/context/config/spring-context-4.0.xsd
+				http://www.springframework.org/schema/aop classpath:org/springframework/aop/config/spring-aop-4.0.xsd
+				http://www.springframework.org/schema/tx classpath:org/springframework/transaction/config/spring-tx-4.0.xsd
+				http://www.springframework.org/schema/mvc classpath:org/springframework/web/servlet/config/spring-mvc-4.0.xsd
+				http://www.springframework.org/schema/task  
+    			http://www.springframework.org/schema/task/spring-task-3.2.xsd">
+
+	<mvc:annotation-driven/>
+	
+	<mvc:resources location="/static/" mapping="/static/**"/>
+	<mvc:resources location="/assets/" mapping="/assets/**"/>
+	
+	<context:component-scan base-package="com.jeefw.controller" />
+	
+	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter" />
+	
+	<!-- 定时任务 -->
+	<task:annotation-driven/>  
+	
+	<!-- <bean id="currentUserInterceptor" class="com.jeefw.security.CurrentUserInterceptor"></bean>   -->
+	
+	<!-- Enable annotation-based controllers using @Controller annotations -->
+	<!--   DefaultAnnotationHandlerMapping将请求来的 url 和被注解了 @RequesMapping 的指进行匹配
+说这句话的前提是定义 DefaultAnnotationHandlerMapping 的优先级比定义了其它的 HandlerMapping 的优先级要高(如果定义了其它的话)。
+-->
+    <bean id="annotationUrlMapping" class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping">
+    	<!-- 自定义拦截器，这里是在控制器之前拦截：请求发送过来时拦截 -->
+        <!-- <property name="interceptors" ref="currentUserInterceptor"/> --><!-- 这句似乎是错的 -->
+        <!-- <property name="interceptors">
+        	<list>
+        		<ref bean="currentUserInterceptor"/>
+        	</list>
+        </property> -->
+    </bean>
+    
+   <!-- 访问拦截  -->  
+  	<mvc:interceptors>
+		<mvc:interceptor>
+			<mvc:mapping path="/**"/>
+			<bean class="com.jeefw.security.CurrentUserInterceptor"/>
+		</mvc:interceptor>
+	</mvc:interceptors>
+    
+    
+    
+    
+    <!-- 开启Shiro注解的Spring配置方式的beans。在lifecycleBeanPostProcessor之后运行 -->   
+    <!-- Enable Shiro Annotations for Spring-configured beans.  Only run after the lifecycleBeanProcessor has run -->
+	<bean class="org.springframework.aop.framework.autoproxy.DefaultAdvisorAutoProxyCreator" depends-on="lifecycleBeanPostProcessor"/>
+	
+	<bean class="org.apache.shiro.spring.security.interceptor.AuthorizationAttributeSourceAdvisor">
+	    <property name="securityManager" ref="securityManager"/><!-- applicationcontent-shiro.xml提供 -->
+	</bean>
+	
+	<!-- 
+	<bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter">
+		<property name="messageConverters">
+			<list>
+				<bean class="org.springframework.http.converter.StringHttpMessageConverter">
+					<property name="supportedMediaTypes">
+						<list>
+							<value>text/plain;charset=UTF-8</value>
+						</list>
+					</property>
+				</bean>
+				<bean class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
+					<property name="supportedMediaTypes">
+						<list>
+							<value>text/plain;charset=UTF-8</value>
+							<value>application/json;charset=UTF-8</value>
+						</list>
+					</property>
+				</bean>
+			</list>
+		</property>
+	</bean>
+	-->
+	
+	<bean id="viewResolver" class="org.springframework.web.servlet.view.InternalResourceViewResolver"> 
+		<property name="viewClass"><value>org.springframework.web.servlet.view.JstlView</value></property> 
+		<property name="prefix"><value>/WEB-INF/page/</value></property> 
+		<property name="suffix"><value>.jsp</value></property>
+	</bean>
+	
+	<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="messages" />
+		<property name="useCodeAsDefaultMessage" value="true" />
+	</bean>
+	
+	<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+		<!--<property name="maxUploadSize" value="10485760"></property> -->
+	</bean> 
+	
+</beans>

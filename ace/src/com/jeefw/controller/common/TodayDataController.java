@@ -1,0 +1,331 @@
+package com.jeefw.controller.common;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.persistence.criteria.From;
+import javax.security.auth.message.callback.PrivateKeyCallback.Request;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.lang.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+import com.google.gson.Gson;
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+import com.jeefw.service.pub.PubService;
+import com.jeefw.service.pub.impl.PubServiceImpl;
+
+import core.dbSource.DatabaseContextHolder;
+import core.support.JqGridPageView;
+import core.support.ListView;
+import core.util.RequestObj;
+
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+
+@Controller
+@RequestMapping("/sys/todaydata")
+public class TodayDataController extends IbaseController {
+
+	@Resource
+	private PubService todayDataService;
+	@Resource
+	private IBaseDao baseDao;
+	@RequestMapping(value = "/getTodayData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getTodayData(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		printRequestParam();
+		Integer firstResult = Integer.valueOf(request.getParameter("page"));//显示第几页
+		Integer maxResults = Integer.valueOf(request.getParameter("rows"));//一页显示几行
+		// 以下获取的是sortname : "id",//默认的排序列。可以是列名称或者是一个数字，这个参数会被提交到后台
+		String sortedObject = request.getParameter("sidx");
+		// 获取的是sortorder : "asc",//排序顺序
+		String sortedValue = request.getParameter("sord");
+		String filters = request.getParameter("filters");
+
+		if(filters!=null){
+			
+		}
+		String sqlwhere = " where 1 = 1 ";
+		if (StringUtils.isNotBlank(filters)) {
+			JSONObject jsonObject = JSONObject.fromObject(filters);
+			JSONArray jsonArray = (JSONArray) jsonObject.get("rules");
+			for (int i = 0; i < jsonArray.size(); i++){
+				JSONObject result = (JSONObject) jsonArray.get(i);
+				if (result.getString("op").equals("eq") && StringUtils.isNotBlank(result.getString("data"))
+						&& !result.getString("op").equals("null")){
+					if(result.getString("field").equalsIgnoreCase("DDATE")){
+						sqlwhere += " and " + result.getString("field") + " between to_date('" + result.getString("data") + " 00:00:00','yyyy-MM-dd HH24:Mi:ss') and to_date('" + result.getString("data") + " 23:59:59','yyyy-MM-dd HH24:Mi:ss')";
+						
+					}else
+						sqlwhere += " and " + result.getString("field") + "='" + result.getString("data")+"'";//= =存储过程自己去适应不同类型了？
+				}else{//20180315 用户编号独立查询
+					/*if(result.getString("field").equalsIgnoreCase("AREAGUID")&& StringUtils.isBlank(result.getString("data"))){//解决没有选择小区名称查询所有数据情况
+						sqlwhere += " and " + result.getString("field") + "='" + (String) request.getSession().getAttribute(AREA_GUIDS)+"'";
+					}*/
+					if(result.getString("field").equalsIgnoreCase("AUTOID")&& StringUtils.isBlank(result.getString("data"))){//解决没有选择小区名称查询所有数据情况
+						sqlwhere += " and " + result.getString("field") + "=1";
+					}
+				}
+				
+				if (result.getString("op").equals("ge") && !"".equals(result.getString("data"))) {//大于等于
+					sqlwhere += " and " + result.getString("field") + ">=" + "to_date('" + result.getString("data") + "','yyyy/MM/dd') ";
+				}
+				if (result.getString("op").equals("le") && !"".equals(result.getString("data"))) {//小等于
+					sqlwhere += " and " + result.getString("field") + "<=" + "to_date('" + result.getString("data") + "','yyyy/MM/dd') ";
+				}
+				
+				if (result.getString("op").equals("cn")) {//包含
+					
+				}
+			}
+
+			if (((String) jsonObject.get("groupOp")).equalsIgnoreCase("OR")) {
+				
+			} else {
+				
+			}
+		}else{//首次进来or无条件查询===>>>显示当天and之前设定的小区信息
+			String areaguids = (String) request.getSession().getAttribute(AREA_GUIDS);
+			if(org.apache.commons.lang3.StringUtils.isNoneBlank(areaguids)){
+				sqlwhere += " and areaguid="+areaguids;
+			}
+			SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+			String currentDate = df.format(new Date());
+			sqlwhere += " and DDATE between to_date('"+currentDate+" 00:00:00','yyyy-MM-dd HH24:Mi:ss') and to_date('"+currentDate+" 23:59:59','yyyy-MM-dd HH24:Mi:ss') and autoid=1";//这样效率会高很多
+		}
+		String sql = "select * from "+RequestObj.switchOnTimeTableByName("VALLAREAINFOFAILURE")+" "+sqlwhere+" order by customid";
+		List list = baseDao.listSqlPageAndChangeToMap(sql, firstResult, maxResults, null);
+		HttpSession session = request.getSession();
+		session.setAttribute("TodayData", sqlwhere);
+		Long count = baseDao.countSql(sql);
+		JqGridPageView listView = new JqGridPageView();
+		listView.setMaxResults(maxResults);
+		listView.setRows(list);
+		listView.setRecords(count);
+		writeJSON(response, listView);
+	}
+	
+	//获取弹窗hightchart图形
+	@RequestMapping("/getClientChartsByFiledName")
+	public void getClientChartsByFiledName(HttpServletRequest request,HttpServletResponse response) throws Exception{
+		printRequestParam();
+		List<Map> list=null;
+	    String beginDates = getParm("beginDate");
+	    String endDates = getParm("endDate");
+	    String meterno = getParm("meterno");
+	    String clientno= getParm("clientno");
+	    String sql1 = " select meterid from tmeter";
+	    String sql2 = "select clientno from vareainfo;";
+	    String sqlwhere =" SELECT to_char(ddate,'yyyy-MM-dd ') as ddate,round(t.MeterNLLJ,2) as MeterNLLJ,round(t.MeterTJ,2) as MeterTJ,round(t.MeterGL,2) as MeterGL,round(t.MeterLS,2) as MeterLS,round(t.MeterJSWD,2) as MeterJSWD,round(t.MeterHSWD,2) as MeterHSWD,round(t.MeterWC,2) as MeterWC from tmeter t,"
+    	   		+ "vareainfo v where t.areaguid = v.AREAGUID and t.meterid = v.METERNO "
+    	   		+ "and t.ddate between TO_DATE('" + beginDates + " ','yyyy-MM-dd') and TO_DATE('" + endDates + "','yyyy-MM-dd')+1 and v.meterno='" + meterno + "' and v.clientno='" + clientno + "' order by t.ddate ";
+    	 
+	    list=baseDao.listSqlAndChangeToMap(sqlwhere, null);
+ 		Gson gson = new Gson();  
+ 		//将JSON串返回  
+ 		PrintWriter out = response.getWriter();  
+ 		out.print(gson.toJson(list));  
+ 		out.flush();  
+ 		out.close();
+	}
+	
+
+	// 操作  删除、导出Excel、字段判断和保存
+	@RequestMapping(value = "/operateTodayData", method = { RequestMethod.POST, RequestMethod.GET })
+	public void operateTodayData(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		String oper = request.getParameter("oper");
+		String id = request.getParameter("id");
+		if (oper.equals("del")) {
+			String[] ids = id.split(",");
+			
+		} else if (oper.equals("excel")) {
+			String date = request.getParameter("date");
+			String areaguid = request.getParameter("areaguid");
+			String flag = request.getParameter("flag");//是否测试
+			String  sqlwhere = (String) request.getSession().getAttribute("TodayData");
+			if(org.apache.commons.lang3.StringUtils.isNotBlank(flag)){
+				 Object count = baseDao.findBySqlList("select count(1) from "+RequestObj.switchOnTimeTableByName("VALLAREAINFOFAILURE")+" "+sqlwhere , null).get(0);
+				 if("0".equals(count.toString())){
+					 writeJSON(response, 1);
+					 return;
+				 }else{
+					 return;
+				 }
+			}
+			
+			String areaname = todayDataService.getAreanameById(areaguid)+date+"抄表数据";
+			areaname = areaname.replaceAll(" ", "");
+			
+			String sql = "select areaname,CLIENTNO,bname||'-'||unitno||'单元'||doorname as DOORNAME,METERID,SFTR,MSNAME,POSITION,METERXISH,round(METERGL,2) as METERGL,round(METERNLLJ,2) as METERNLLJ,round(METERLS,2) as METERLS,round(METERTJ,2) as METERTJ,round(METERJSWD,2) as METERJSWD,round(METERHSWD,2) as METERHSWD,round(METERWC,2) as METERWC,COUNTHOUR,DDATE,AUTOID from "+RequestObj.switchOnTimeTableByName("VALLAREAINFOFAILURE")+" "
+					+sqlwhere
+					+ " and rownum < 65536 order by customid"; //POOLADDR,MBUSID, POSITION,METERXISH 20171016
+			//response.setContentType("application/msexcel;charset=UTF-8");
+			List list = baseDao.findBySqlList(sql, null);
+
+			HSSFWorkbook wb = new HSSFWorkbook();
+			HSSFSheet sheet = wb.createSheet("sheet1");
+			sheet.setDefaultColumnWidth(15);
+			HSSFCellStyle cellBorder = wb.createCellStyle();
+            cellBorder.setBorderLeft(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setBorderRight(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setBorderTop(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setBorderBottom(HSSFCellStyle.BORDER_THIN);
+            cellBorder.setAlignment(HSSFCellStyle.ALIGN_CENTER); 
+    		HSSFFont font = wb.createFont();
+            font.setFontName("仿宋_GB2312");
+            font.setFontHeightInPoints((short) 10);
+    		cellBorder.setFont(font);
+            cellBorder.setWrapText(true);
+            HSSFRow row;
+            HSSFCell cell;
+            if(list.size()>0){
+            	String strTitles = "小区名称，用户编码，门牌，热表号，用热状态，热表状态，位置，系数，瞬时热量(kw)，累计热量(kwh)，瞬时流量(t/h)，累计流量(t)"
+            			+ "，进水温度(℃)，回水温度(℃)，温差(℃)，时数(h)，日期，抄表批次";//门牌，集中器地址，通道号，热表号，
+            	sheet.setColumnWidth(1, 6000);
+            	sheet.setColumnWidth(16, 9000);
+            	setExcelTitleStr(strTitles, wb , sheet);
+
+            	for (int i = 0; i < list.size(); i++) {
+            		
+                	row = sheet.createRow(i+1);
+                	row.setHeight((short)360);
+                	Object[] os =  (Object[])list.get(i);
+    				for (int j = 0; j < os.length; j++) {
+    					cell = row.createCell(j);
+    					if(os[j] == null){
+    						cell.setCellValue("");
+    					}else{
+    						cell.setCellValue(os[j].toString());
+    					}
+    					cell.setCellStyle(cellBorder);
+    				}
+    			}
+            }
+
+			try {
+				ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                wb.write(baos);
+                response.addHeader("Content-Disposition", "attachment;filename="
+						+ new String( areaname.getBytes("gb2312"), "ISO8859-1" ) + ".xls");
+                response.setContentType("application/vnd.ms-excel");
+                response.setContentLength(baos.size());
+                
+                ServletOutputStream out1 = response.getOutputStream();
+                baos.writeTo(out1);
+                out1.flush();
+                out1.close();
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
+		} else {
+			
+		}
+	}
+	
+	@RequestMapping("/getSessionArea")
+	public void getSessionArea(HttpServletRequest resquest, HttpServletResponse response) throws IOException{
+		Map<String, String> map = new HashMap<String, String>();
+		map.put("areaguid", getSessionAreaGuids());
+		map.put("areaname", todayDataService.getAreanameById(getSessionAreaGuids()));
+		writeJSON(response, map);
+	}
+	@RequestMapping("/setSessionArea")
+	@ResponseBody
+	public String setSesssionArea(HttpServletRequest request,HttpServletResponse response){
+		setDefualtArea(getParm("AREAGUID"), todayDataService.getAreanameById(getParm("AREAGUID")));
+		return "ok";
+	}
+	
+	//小区下拉初始化
+	@RequestMapping(value = "/getAreaDownList", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getArea(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Map<String, String[]> mapss = request.getParameterMap();
+		List map = todayDataService.getArea(mapss);
+		writeJSON(response, map);
+	}
+	//楼宇
+	@RequestMapping(value = "/getBuildDownList", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getBuildDownList(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Map<String, String[]> mapss = request.getParameterMap();
+		List map = todayDataService.getBuild(mapss);
+		writeJSON(response, map);
+	}
+	//单元
+	@RequestMapping(value = "/getUnitNODownList", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getUnitNODownList(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Map<String, String[]> paramMap = request.getParameterMap();
+		List map = todayDataService.getUnitNO(paramMap);
+		writeJSON(response, map);
+	}
+	
+	//楼层	
+	@RequestMapping(value = "/getFloorNoDownList", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getFloorNoDownList(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Map<String, String[]> paramMap = request.getParameterMap();
+		List map = todayDataService.getFloorNo(paramMap);
+		writeJSON(response, map);
+	}
+	
+	//门牌getDoorNoDownList
+	@RequestMapping(value = "/getDoorNoDownList", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getDoorNoDownList(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Map<String, String[]> paramMap = request.getParameterMap();
+		List map = todayDataService.getDoorNo(paramMap);
+		writeJSON(response, map);
+	}
+	
+	@RequestMapping(value = "/getRemainInfo")
+	public void getRemainInfo(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Map<String, String[]> paramMap = request.getParameterMap();
+		List map = todayDataService.getRemainInfo(paramMap);
+		if(map.size()==0)
+			return;
+		writeJSON(response, map.get(0));
+	}
+	@RequestMapping(value = "/getChangeMeterData")
+	public void getChangeMeterData(HttpServletRequest request, HttpServletResponse response) throws IOException{
+		Map<String, String[]> paramMap = request.getParameterMap();
+		
+		List map = todayDataService.getChangeMeter(paramMap);
+		if(map.size()==0)
+			return;
+		writeJSON(response, map.get(0));
+	}
+	//
+	@RequestMapping(value = "/getTestRow", method = { RequestMethod.POST, RequestMethod.GET })
+	public void getTestRow(HttpServletRequest request, HttpServletResponse response){
+		String sql ="select areaname from tarea";
+		List list = baseDao.listSqlAndChangeToMap(sql, null);
+		try {
+			writeJSON(response, list);
+		} catch (IOException e) {
+			// TODO 自动生成的 catch 块
+			e.printStackTrace();
+		}
+	}
+	
+
+
+}

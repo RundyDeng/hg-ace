@@ -1,0 +1,907 @@
+	var scripts = [ null,
+		                $path_base + "/static/assets/js/jqGrid/jquery.jqGrid.js", 
+		                $path_base + "/static/assets/js/jqGrid/i18n/grid.locale-cn.js", 
+		                null ]
+		
+		$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+        	jQuery(function($) {
+        		var da_search = "#da-search";
+        		var grid_selector = "#grid-table";
+        		var pager_selector = "#grid-pager";
+        		$(window).on('resize.jqGrid', function() {
+        			$(grid_selector).jqGrid('setGridWidth', $(".page-content").width());
+        		})
+        		var parent_column = $(grid_selector).closest('[class*="col-"]');
+        		$(document).on('settings.ace.jqGrid', function(ev, event_name, collapsed) {
+        			if (event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed') {
+        				setTimeout(function() {
+        					$(grid_selector).jqGrid('setGridWidth', parent_column.width());
+        				}, 0);
+        			}
+        		});
+        		
+        		var template1 = { 
+        				"groupOp": "AND", 
+        				"rules": [ 
+									 { "field": "METERTYPE", "op": "eq", "data": "" } ,//热表品牌
+									 { "field": "MSNAME", "op": "eq", "data": "" } ,//某个品牌的表的故障类型
+        				         ] 
+        		};
+        		function getSelectElement(val){
+        			if(val!=='undefined')
+        				return $('td[class="columns"]:has(option:selected[value='+val+']) ~ td[class="data"] select');
+        		}
+        		function emptyAndReset(e){
+        			e.empty();
+        			e.append("<option value=''>请选择</option>").attr("selected",true).change();
+        		}
+        		function convertCN(cellvalue, options, rowdata){
+        			if(cellvalue == 0)
+        				return '否';
+        			else if(cellvalue == 1)
+        				return '是';
+        		}
+        		
+				var flag = true;
+        		jQuery(grid_selector).jqGrid({
+        			subGrid : false,
+        			url : $path_base + "/baseinfomanage/setmeterfailure/getmeterfailure",
+        			datatype : "json",
+        			height : 450,
+        			rownumbers:true,
+        			colNames : ['ID','操作','热表类型','故障原因','出错代码','处理方法' 
+								],
+        			colModel : [{
+        							name : 'ID',
+        							index : 'ID',
+        							label : '故障ID',
+        							key : true,//做delete等时使用，相当于是id吧
+        							hidden : true,
+        							search : false,
+        	        				searchoptions:{
+        	        					searchhidden:false,
+        	        					sopt:['eq']
+        	        				},
+        							editable : true
+        						},
+        			            {
+			        				name : '',
+			        				index : '',
+			        				label : '操作',
+			        				width : 80,
+			        				viewable : false,
+			        				fixed : true,
+			        				sortable : false,
+			        				resize : false,
+			        				formatter : 'actions',
+			        				formatoptions : {
+			        					keys : true,
+			        					delbutton : true,//disable delete button
+			        					delOptions : {
+			        						recreateForm : true,
+			        						beforeShowForm : beforeDeleteCallback
+			        					}
+			        				}
+			        			},
+								 {
+	        			            hidden:false,
+	       			            	name:'DEVICECHILDTYPENAME',
+	       			            	index : 'DEVICECHILDTYPENAME',
+	       			            	label:'热表类型',
+	       			            	width : 100,
+	       			            	editable : true,
+			            			edittype : 'select',
+	       			            	editoptions : { 
+	       			            		dataUrl:$path_base + "/baseinfomanage/meterFaultInfoContr/getMeterFaultInfo",
+	       			            		buildSelect: function(response){
+        	        						var $data = jQuery.parseJSON(response).rows;
+        	        						var strHtml = '<select><option value="">请选择</option>';
+        	        						for(var i=0;i<$data.length;i++){
+        	        							var obj = $data[i];
+        	        							strHtml += '<option value="'+obj['DEVICECHILDTYPENO']+'">'+obj['DEVICECHILDTYPENAME']+'</option>';
+        	        						}
+        	        						strHtml += '</select>';
+        	        						return strHtml;
+        	        					},
+        	        					
+	       			            	},	
+	       			            	editrules : {
+	       			            		 //required : true, 
+	       			            		 custom : true,
+	       			            		 custom_func : function(value,colname){
+	       			            			 if(value==''||value == 'undefined')
+	       			            			 	return [false,"请选择热表类型！"];
+	       			            			 return [true,""];
+	       			            		 }
+	       			            	 },
+	       			            //	formatoptions :function(value,colname) {
+	       			            //		return  DEVICECHILDTYPENAME;
+	       			            //	}
+        			            },
+        			            
+        			            {
+	       			            	 hidden:false,
+	       			            	 label:'故障原因',
+	       			            	 name:'MSNAME',
+	       			            	 index : 'MSNAME',
+	       			            	 width : 200,
+	       			            	 editable : true,
+	       			            	 edittype : 'text',
+	       			            	 editoptions : { 
+	       			            					size : "20", 
+	       			            					maxlength : "50",
+	       			            					NullIfEmpty : false
+	       			            				  },
+	       			            	editrules : {
+	       			            					edithidden : true, 
+	       			            					required : true
+	       			            				}
+       			            	},
+       			            	{
+	       			            	 hidden:false,
+	       			            	 label:'出错代码',
+	       			            	 index : 'MSID',
+	       			            	 name:'MSID',
+	       			            	 width : 200,
+	       			            	 editable : true,
+	       			            	edittype : 'text',
+	       			            	editoptions : { 
+	       			            					size : "20", 
+	       			            					maxlength : "50",
+	       			            					NullIfEmpty : false
+	       			            				  },
+	       			            	 editrules :  {
+	       			            					edithidden : true, 
+	       			            					required : true
+	       			            				  }
+       			             	},           
+       			            	
+        			            {
+        	        				name : 'FAILURECONDITION',
+        	        				index : 'FAILURECONDITION',
+        	        				label : '处理方法',
+        	        				width : 260,
+        	        				//fixed : true,
+        	        				editable : true,
+        	        				edittype : 'textarea',
+        	        				editoptions : {
+        	        					rows:'1',
+			            				cols:'60',
+        	        					NullIfEmpty : false
+        	        				},
+        	        				
+        	        			}],
+        	//		sortname : "",
+        	//		sortorder : "asc",
+        	//		shrinkToFit:true,
+        	//		viewrecords : true,
+        	//		rowNum : 20,
+        	//		rowList : [ 20, 30, 50 ],
+        			shrinkToFit : true,
+        			rowNum : 1000,
+        			pager : pager_selector,
+        			toppager : true,
+        	        multiboxonly : true,
+        	        ondblClickRow: function(rowid){
+        				jQuery(grid_selector).viewGridRow(rowid,{});
+        			},
+        			loadComplete : function(data) {
+        				if(data.rows.length==0)
+        					$('.ui-jqgrid-htable').css('width','auto');
+        				else
+        					$('.ui-jqgrid-htable').css('width','100%');
+        				var table = this;
+        				setTimeout(function(){
+        					styleCheckbox(table);
+        					updateActionIcons(table);
+        					updatePagerIcons(table);
+        					enableTooltips(table);
+        				}, 0);
+        			},
+        			editurl : $path_base + "/baseinfomanage/setmeterfailure/opermeterfailure"
+        		});
+        		
+        		$(window).triggerHandler('resize.jqGrid');// trigger window resize to make the grid get the correct size
+        		function aceSwitch(cellvalue, options, cell) {
+        			setTimeout(function() {
+        				$(cell).find('input[type=checkbox]').addClass('ace ace-switch ace-switch-5').after('<span class="lbl"></span>');
+        			}, 0);
+        		}
+        		function pickDate(cellvalue, options, cell) {
+        			setTimeout(function() {
+        				$(cell).find('input[type=text]').datepicker({
+        					format : 'yyyy-mm-dd',
+        					autoclose : true,
+        				    language: 'zh-CN'
+        				});
+        			}, 0);
+        		}
+        		// navButtons
+        		jQuery(grid_selector).jqGrid('navGrid', pager_selector, { // navbar options
+        			
+        			edit : true,
+        			editicon : 'ace-icon fa fa-pencil blue',
+        			add : true,
+        			addicon : 'ace-icon fa fa-plus-circle purple',
+        			del : true,
+        			delicon : 'ace-icon fa fa-trash-o red',
+        			search : false,
+        			searchicon : 'ace-icon fa fa-search orange',
+        			refresh : true,
+        			refreshicon : 'ace-icon fa fa-refresh blue',
+        			view : false,
+        			viewicon : 'ace-icon fa fa-search-plus grey'
+        		}, {
+        			width : 600,
+        			closeAfterEdit: true,
+        			dataheight : false,//the parameter control the scrolling content - i.e between the modal header and modal footer.
+        			recreateForm : true,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        				style_edit_form(form);
+        			},
+        			errorTextFormat: function (response) {
+    					var result = eval('('+response.responseText+')');
+    				    return result.message;
+    				}
+        		}, {
+        			// new record form
+        			width : 600,
+        			closeAfterAdd : true,
+        			recreateForm : true,
+        			viewPagerButtons : false,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        				style_edit_form(form);
+        			},
+    				errorTextFormat: function (response) {
+    					var result = eval('('+response.responseText+')');
+    				    return result.message;
+    				}
+        		}, {
+        			// delete record form
+        			recreateForm : true,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				if (form.data('styled'))
+        					return false;
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        				style_delete_form(form);
+        				form.data('styled', true);
+        			},
+        			onClick : function(e) {
+        				
+        			}
+        		}, {
+        			// search form
+        			recreateForm : true,
+        			
+        			tmplNames : ['多条件查询'],
+        			tmplFilters : [template1],
+        			tmplLabel : "",
+        			
+        			closeAfterSearch : true,
+        			searchOnEnter: true,
+        			closeOnEscape:true,
+        			afterShowSearch : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+        				style_search_form(form);
+        			},
+        			afterRedraw : function() {
+        				style_search_filters($(this));
+        			},
+        			multipleSearch : true,
+        			onSearch: _J_setAreaGuid
+        		}, {
+        			// view record form
+        			width : 600,
+        			recreateForm : true,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+        			}
+        		})
+        
+        		// add custom button to export the data to excel
+        		if(false){
+    				jQuery(grid_selector).jqGrid('navButtonAdd', pager_selector,{
+   					   caption : "",
+   				       title : "导出Excel",
+   				       buttonicon : "ace-icon fa fa-file-excel-o green", 
+   				       onClickButton : function () { 
+   				    	   var keys = [], ii = 0, rows = "";
+   				    	   var ids = $(grid_selector).getDataIDs(); // Get All IDs
+   				    	   var row = $(grid_selector).getRowData(ids[0]); // Get First row to get the labels
+   				    	   //var label = $(grid_selector).jqGrid('getGridParam','colNames');
+   	   			    	   for (var k in row) {
+   				    	   	   keys[ii++] = k; // capture col names
+   				    	   	   var kv = $('#jqgh_grid-table_' + k).text();
+				    	   	   rows = rows + kv + "\t";
+   				    	   }
+   				    	   rows = rows + "\n"; // Output header with end of line
+   				    	   for (i = 0; i < ids.length; i++) {
+   				    	   	   row = $(grid_selector).getRowData(ids[i]); // get each row
+   				    	   	   for (j = 0; j < keys.length; j++)
+   				    	   		   rows = rows + row[keys[j]] + "\t"; // output each Row as tab delimited
+   				    	   	   rows = rows + "\n"; // output each row with end of line
+   				    	   }
+   				    	   rows = rows + "\n"; // end of line at the end
+   				    	   var form = "<form name='csvexportform' action='" + $path_base + "/sys/hisdata/operateHisData?oper=excel' method='post'>";
+   				    	   form = form + "<input type='hidden' name='csvBuffer' value='" + encodeURIComponent(rows) + "'>";
+   				    	   form = form + "</form><script>document.csvexportform.submit();</sc" + "ript>";
+   				    	   OpenWindow = window.open('', '');
+   				    	   OpenWindow.document.write(form);
+   				    	   OpenWindow.document.close();
+   				       } 
+   					});        			
+        		}
+        		
+        		function style_edit_form(form) {
+        			var buttons = form.next().find('.EditButton .fm-button');
+        			buttons.addClass('btn btn-sm').find('[class*="-icon"]').hide();
+        			buttons.eq(0).addClass('btn-primary').prepend('<i class="ace-icon fa fa-check"></i>');
+        			buttons.eq(1).prepend('<i class="ace-icon fa fa-times"></i>')
+        			buttons = form.next().find('.navButton a');
+        			buttons.find('.ui-icon').hide();
+        			buttons.eq(0).append('<i class="ace-icon fa fa-chevron-left"></i>');
+        			buttons.eq(1).append('<i class="ace-icon fa fa-chevron-right"></i>');
+        		}
+        		function style_delete_form(form) {
+        			var buttons = form.next().find('.EditButton .fm-button');
+        			buttons.addClass('btn btn-sm btn-white btn-round').find('[class*="-icon"]').hide();
+        			buttons.eq(0).addClass('btn-danger').prepend('<i class="ace-icon fa fa-trash-o"></i>');
+        			buttons.eq(1).addClass('btn-default').prepend('<i class="ace-icon fa fa-times"></i>')
+        		}
+        		function style_search_filters(form) {
+        			form.find('.delete-rule').val('X').hide();
+        			form.find('.add-rule').addClass('btn btn-xs btn-primary').hide();
+        			form.find('.add-group').addClass('btn btn-xs btn-success');
+        			form.find('.delete-group').addClass('btn btn-xs btn-danger').hide();
+        		}
+        		function style_search_form(form) {
+        			var dialog = form.closest('.ui-jqdialog');
+        			var buttons = dialog.find('.EditTable');
+        			buttons.find('.EditButton select[class="ui-template"] option[value="default"]').attr("selected",false);
+        			buttons.find('.EditButton select[class="ui-template"] option[value!="default"]').attr("selected",true).change();//还需要再多加上一个change来触发
+        			buttons.find('.EditButton select[class="ui-template"]').hide();
+        			form.find('select[class="opsel"]').remove();
+        			form.find('.searchFilter table').remove()  ; //attr('align','center')
+        			buttons.find('.EditButton a[id*="_reset"]').hide().addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+        			buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+        			buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').css('class', 'ace-icon fa fa-search');
+        			form.find('.columns select').attr('disabled','disabled'); 
+        			form.find('.operators select').attr('disabled','disabled');
+        		}
+
+        		function beforeDeleteCallback(e) {
+        			var form = $(e[0]);
+        			if (form.data('styled'))
+        				return false;
+        			form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        			style_delete_form(form);
+        			form.data('styled', true);
+        		}
+        		function beforeEditCallback(e) {
+        			var form = $(e[0]);
+        			form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        			style_edit_form(form);
+        		}
+        		function styleCheckbox(table) {}
+        		function updateActionIcons(table) {}
+
+        		function updatePagerIcons(table) {
+        			var replacement = {
+        				'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+        				'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+        				'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+        				'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+        			};
+        			$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function() {
+        				var icon = $(this);
+        				var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+
+        				if ($class in replacement)
+        					icon.attr('class', 'ui-icon ' + replacement[$class]);
+        			})
+        		}
+        		function enableTooltips(table) {
+        			$('.navtable .ui-pg-button').tooltip({
+        				container : 'body'
+        			});
+        			$(table).find('.ui-pg-div').tooltip({
+        				container : 'body'
+        			});
+        		}
+        		$(document).one('ajaxloadstart.page', function(e) {
+        			$(grid_selector).jqGrid('GridUnload');
+        			$('.ui-jqdialog').remove();
+        		});
+        		$(pager_selector + ' #grid-pager_left span').css({'text-indent':0});
+				var navTable = $(pager_selector + ' #grid-pager_left').clone(true);
+				$(pager_selector + ' #grid-pager_left').empty();
+     			$('#grid-table_toppager_left').append(navTable);
+     		//	$('#grid-table_toppager_left').append(_go_back);  //20180125 去掉标题
+        	});
+        });
+
+
+
+
+/*		var scripts = [ null,
+		                $path_base + "/static/assets/js/jqGrid/jquery.jqGrid.js", 
+		                $path_base + "/static/assets/js/jqGrid/i18n/grid.locale-cn.js", 
+		                null ]
+		
+		$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+        	jQuery(function($) {
+        		var da_search = "#da-search";
+        		var grid_selector = "#grid-table";
+        		var pager_selector = "#grid-pager";
+        		$(window).on('resize.jqGrid', function() {
+        			$(grid_selector).jqGrid('setGridWidth', $(".page-content").width());
+        		})
+        		var parent_column = $(grid_selector).closest('[class*="col-"]');
+        		$(document).on('settings.ace.jqGrid', function(ev, event_name, collapsed) {
+        			if (event_name === 'sidebar_collapsed' || event_name === 'main_container_fixed') {
+        				setTimeout(function() {
+        					$(grid_selector).jqGrid('setGridWidth', parent_column.width());
+        				}, 0);
+        			}
+        		});
+        		function getSelectElement(val){
+        			if(val!=='undefined')
+        				return $('td[class="columns"]:has(option:selected[value='+val+']) ~ td[class="data"] select');
+        		}
+        		function emptyAndReset(e){
+        			e.empty();
+        			e.append("<option value=''>请选择</option>").attr("selected",true).change();
+        		}
+        		function convertCN(cellvalue, options, rowdata){
+        			if(cellvalue == 0)
+        				return '否';
+        			else if(cellvalue == 1)
+        				return '是';
+        		}
+        		
+				var flag = true;
+        		jQuery(grid_selector).jqGrid({
+        			subGrid : false,
+        			url : $path_base + "/baseinfomanage/setmeterfailure/getmeterfailure",
+        			datatype : "json",
+        			height : 450,
+        			rownumbers:true,
+        			colNames : ['FailureID','操作','热表类型','故障编号','故障名称','故障条件','所属小区','故障说明'    //'小区编号',
+								],
+        			colModel : [{
+        							name : 'FAILUREID',
+        							index : 'FAILUREID',
+        							label : '故障ID',
+        							key : true,//做delete等时使用，相当于是id吧
+        							hidden : true,
+        							search : false,
+        	        				searchoptions:{
+        	        					searchhidden:false,
+        	        					sopt:['eq']
+        	        				},
+        							editable : true
+        						},
+        			            {
+			        				name : '',
+			        				index : '',
+			        				label : '操作',
+			        				width : 80,
+			        				viewable : false,
+			        				fixed : true,
+			        				sortable : false,
+			        				resize : false,
+			        				formatter : 'actions',
+			        				formatoptions : {
+			        					keys : true,
+			        					delbutton : true,//disable delete button
+			        					delOptions : {
+			        						recreateForm : true,
+			        						beforeShowForm : beforeDeleteCallback
+			        					}
+			        				}
+			        			},
+								 {
+	        			            hidden:false,
+	       			            	name:'DEVICECHILDTYPENAME',
+	       			            	index : 'DEVICECHILDTYPENAME',
+	       			            	label:'热表类型',
+	       			            	width : 100,
+	       			            	editable : true,
+			            			edittype : 'select',
+	       			            	editoptions : { 
+	       			            		dataUrl:$path_base + "/baseinfomanage/meterFaultInfoContr/getMeterFaultInfo",
+	       			            		buildSelect: function(response){
+        	        						var $data = jQuery.parseJSON(response).rows;
+        	        						var strHtml = '<select><option value="">请选择</option>';
+        	        						for(var i=0;i<$data.length;i++){
+        	        							var obj = $data[i];
+        	        							strHtml += '<option value="'+obj['DEVICECHILDTYPENO']+'">'+obj['DEVICECHILDTYPENAME']+'</option>';
+        	        						}
+        	        						strHtml += '</select>';
+        	        						return strHtml;
+        	        					},
+        	        					
+	       			            	},	
+	       			            	editrules : {
+	       			            		 //required : true, 
+	       			            		 custom : true,
+	       			            		 custom_func : function(value,colname){
+	       			            			 if(value==''||value == 'undefined')
+	       			            			 	return [false,"请选择热表类型！"];
+	       			            			 return [true,""];
+	       			            		 }
+	       			            	 },
+	       			            	//formatoptions :function(value,colname) {
+	       			            	//	return  DEVICECHILDTYPENAME;
+	       			            	//}
+        			            },
+	
+        			            {
+	        			            hidden:false,
+	       			            	label:'故障编号',
+	       			            	name:'FAILURECODE',
+	       			            	index : 'FAILURECODE',
+	       			            	width : 100,
+	       			            	editable : true,
+	       			            	edittype : 'text',
+	       			            	editoptions : { 
+	       			            					size : "20", 
+	       			            					maxlength : "50",
+	       			            					NullIfEmpty : false
+	       			            				  },
+	       			            	editrules : {
+	       			            					edithidden : true, 
+	       			            					required : true
+	       			            				},
+	       			            	
+        			            },
+        			            {
+	       			            	 hidden:false,
+	       			            	 label:'故障名称',
+	       			            	 name:'FAILURENAME',
+	       			            	 index : 'FAILURENAME',
+	       			            	width : 200,
+	       			            	editable : true,
+	       			            	edittype : 'text',
+	       			            	editoptions : { 
+	       			            					size : "20", 
+	       			            					maxlength : "50",
+	       			            					NullIfEmpty : false
+	       			            				  },
+	       			            	editrules : {
+	       			            					edithidden : true, 
+	       			            					required : true
+	       			            				}
+       			            	},
+       			            	{
+	       			            	 hidden:false,
+	       			            	 label:'故障条件',
+	       			            	 index : 'FAILURECONDITION',
+	       			            	 name:'FAILURECONDITION',
+	       			            	 width : 200,
+	       			            	 editable : true,
+	       			            	edittype : 'text',
+	       			            	editoptions : { 
+	       			            					size : "20", 
+	       			            					maxlength : "50",
+	       			            					NullIfEmpty : false
+	       			            				  },
+	       			            	 editrules :  {
+	       			            					edithidden : true, 
+	       			            					required : true
+	       			            				  }
+       			             	},           
+       			            	{
+	       			            	
+	       			            	 label:'小区编号',
+	       			            	 name:'AREAGUID',
+	       			            	 index : 'AREAGUID',
+	       			            	 width : 88,
+	       			            	 editable : false
+      			             	}, 
+      			             	{
+	      			             	 label:'所属小区名',
+	       			            	 name:'AREANAME',
+	       			            	 index : 'AREANAME',
+	       			            	 editable : true,
+	       			            	 edittype : 'select',
+	       			            	 editoptions : {
+	       			            		dataUrl:$path_base + '/sys/todaydata/getAreaDownList',
+	    			         			buildSelect:function(data){
+	    			         				var areaguid = _J_getAreaGuid();
+        	        						var response = jQuery.parseJSON(data);
+        	        					      var s = '<select><option value="">请选择</option>';
+        	        					      if (response && response.length) {
+        	        					          for (var i = 0, l = response.length; i < l; i++) {
+        	        					           var ri = response[i];
+        	        					           s += '<option value="' + ri['AREAGUID'] + '">' + ri['AREANAME'] + '</option>';
+        	        					          }
+        	        					       }
+        	        					      s += "<script>setTimeout(function() {$('select option[value="+areaguid+"]').change().attr('selected',true);}, 500);</sc"+"ript>  ";
+        	        					     return s + "</select>";
+        	        				     }
+        	        				    
+	       			            	 },
+	       			            	 editrules : {
+	       			            		 //required : true, 
+	       			            		 custom : true,
+	       			            		 custom_func : function(value,colname){
+	       			            			 if(value==''||value == 'undefined')
+	       			            			 	return [false,"请故障所属选择小区！"];
+	       			            			 return [true,""];
+	       			            		 }
+	       			            	 },
+	       			            	formatoptions : {
+	       			            		
+	       			            	}
+        	        			},
+        			            {
+        	        				name : 'FAILURESIGN',
+        	        				index : 'FAILURESIGN',
+        	        				label : '故障说明',
+        	        				width : 260,
+        	        				//fixed : true,
+        	        				editable : true,
+        	        				edittype : 'textarea',
+        	        				editoptions : {
+        	        					rows:'1',
+			            				cols:'60',
+        	        					NullIfEmpty : false
+        	        				},
+        	        			//	formatter : function(){
+        	        			//		return '<span style="color:rgba(147, 147, 147, 0.5);">故障说明暂时无法保存，没有字段对应</span>';
+        	        			//	}
+        	        			}],
+        			shrinkToFit : true,
+        			rowNum : 1000,
+        			pager : pager_selector,
+        			toppager : true,
+        	        multiboxonly : true,
+        	        ondblClickRow: function(rowid){
+        				jQuery(grid_selector).viewGridRow(rowid,{});
+        			},
+        			loadComplete : function(data) {
+        				if(data.rows.length==0)
+        					$('.ui-jqgrid-htable').css('width','auto');
+        				else
+        					$('.ui-jqgrid-htable').css('width','100%');
+        				var table = this;
+        				setTimeout(function(){
+        					styleCheckbox(table);
+        					updateActionIcons(table);
+        					updatePagerIcons(table);
+        					enableTooltips(table);
+        				}, 0);
+        			},
+        			editurl : $path_base + "/baseinfomanage/setmeterfailure/opermeterfailure"
+        		});
+        		
+        		$(window).triggerHandler('resize.jqGrid');// trigger window resize to make the grid get the correct size
+        		function aceSwitch(cellvalue, options, cell) {
+        			setTimeout(function() {
+        				$(cell).find('input[type=checkbox]').addClass('ace ace-switch ace-switch-5').after('<span class="lbl"></span>');
+        			}, 0);
+        		}
+        		function pickDate(cellvalue, options, cell) {
+        			setTimeout(function() {
+        				$(cell).find('input[type=text]').datepicker({
+        					format : 'yyyy-mm-dd',
+        					autoclose : true,
+        				    language: 'zh-CN'
+        				});
+        			}, 0);
+        		}
+        		// navButtons
+        		jQuery(grid_selector).jqGrid('navGrid', pager_selector, { // navbar options
+        			
+        			edit : true,
+        			editicon : 'ace-icon fa fa-pencil blue',
+        			add : true,
+        			addicon : 'ace-icon fa fa-plus-circle purple',
+        			del : true,
+        			delicon : 'ace-icon fa fa-trash-o red',
+        			search : false,
+        			searchicon : 'ace-icon fa fa-search orange',
+        			refresh : true,
+        			refreshicon : 'ace-icon fa fa-refresh blue',
+        			view : false,
+        			viewicon : 'ace-icon fa fa-search-plus grey'
+        		}, {
+        			width : 600,
+        			closeAfterEdit: true,
+        			dataheight : false,//the parameter control the scrolling content - i.e between the modal header and modal footer.
+        			recreateForm : true,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        				style_edit_form(form);
+        			},
+        			errorTextFormat: function (response) {
+    					var result = eval('('+response.responseText+')');
+    				    return result.message;
+    				}
+        		}, {
+        			// new record form
+        			width : 600,
+        			closeAfterAdd : true,
+        			recreateForm : true,
+        			viewPagerButtons : false,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        				style_edit_form(form);
+        			},
+    				errorTextFormat: function (response) {
+    					var result = eval('('+response.responseText+')');
+    				    return result.message;
+    				}
+        		}, {
+        			// delete record form
+        			recreateForm : true,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				if (form.data('styled'))
+        					return false;
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        				style_delete_form(form);
+        				form.data('styled', true);
+        			},
+        			onClick : function(e) {
+        				
+        			}
+        		}, {
+        			// search form
+        			recreateForm : true,
+        			closeAfterSearch : true,
+        			searchOnEnter: true,
+        			closeOnEscape:true,
+        			afterShowSearch : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+        				style_search_form(form);
+        			},
+        			afterRedraw : function() {
+        				style_search_filters($(this));
+        			},
+        			multipleSearch : true,
+        			onSearch: _J_setAreaGuid
+        		}, {
+        			// view record form
+        			width : 600,
+        			recreateForm : true,
+        			beforeShowForm : function(e) {
+        				var form = $(e[0]);
+        				form.closest('.ui-jqdialog').find('.ui-jqdialog-title').wrap('<div class="widget-header" />')
+        			}
+        		})
+        		
+        		// add custom button to export the data to excel
+        		if(false){
+    				jQuery(grid_selector).jqGrid('navButtonAdd', pager_selector,{
+   					   caption : "",
+   				       title : "导出Excel",
+   				       buttonicon : "ace-icon fa fa-file-excel-o green", 
+   				       onClickButton : function () { 
+   				    	   var keys = [], ii = 0, rows = "";
+   				    	   var ids = $(grid_selector).getDataIDs(); // Get All IDs
+   				    	   var row = $(grid_selector).getRowData(ids[0]); // Get First row to get the labels
+   				    	   //var label = $(grid_selector).jqGrid('getGridParam','colNames');
+   	   			    	   for (var k in row) {
+   				    	   	   keys[ii++] = k; // capture col names
+   				    	   	   var kv = $('#jqgh_grid-table_' + k).text();
+				    	   	   rows = rows + kv + "\t";
+   				    	   }
+   				    	   rows = rows + "\n"; // Output header with end of line
+   				    	   for (i = 0; i < ids.length; i++) {
+   				    	   	   row = $(grid_selector).getRowData(ids[i]); // get each row
+   				    	   	   for (j = 0; j < keys.length; j++)
+   				    	   		   rows = rows + row[keys[j]] + "\t"; // output each Row as tab delimited
+   				    	   	   rows = rows + "\n"; // output each row with end of line
+   				    	   }
+   				    	   rows = rows + "\n"; // end of line at the end
+   				    	   var form = "<form name='csvexportform' action='" + $path_base + "/sys/hisdata/operateHisData?oper=excel' method='post'>";
+   				    	   form = form + "<input type='hidden' name='csvBuffer' value='" + encodeURIComponent(rows) + "'>";
+   				    	   form = form + "</form><script>document.csvexportform.submit();</sc" + "ript>";
+   				    	   OpenWindow = window.open('', '');
+   				    	   OpenWindow.document.write(form);
+   				    	   OpenWindow.document.close();
+   				       } 
+   					});        			
+        		}
+        		
+        		function style_edit_form(form) {
+        			var buttons = form.next().find('.EditButton .fm-button');
+        			buttons.addClass('btn btn-sm').find('[class*="-icon"]').hide();
+        			buttons.eq(0).addClass('btn-primary').prepend('<i class="ace-icon fa fa-check"></i>');
+        			buttons.eq(1).prepend('<i class="ace-icon fa fa-times"></i>')
+        			buttons = form.next().find('.navButton a');
+        			buttons.find('.ui-icon').hide();
+        			buttons.eq(0).append('<i class="ace-icon fa fa-chevron-left"></i>');
+        			buttons.eq(1).append('<i class="ace-icon fa fa-chevron-right"></i>');
+        		}
+        		function style_delete_form(form) {
+        			var buttons = form.next().find('.EditButton .fm-button');
+        			buttons.addClass('btn btn-sm btn-white btn-round').find('[class*="-icon"]').hide();
+        			buttons.eq(0).addClass('btn-danger').prepend('<i class="ace-icon fa fa-trash-o"></i>');
+        			buttons.eq(1).addClass('btn-default').prepend('<i class="ace-icon fa fa-times"></i>')
+        		}
+        		function style_search_filters(form) {
+        			form.find('.delete-rule').val('X').hide();
+        			form.find('.add-rule').addClass('btn btn-xs btn-primary').hide();
+        			form.find('.add-group').addClass('btn btn-xs btn-success');
+        			form.find('.delete-group').addClass('btn btn-xs btn-danger').hide();
+        		}
+        		function style_search_form(form) {
+        			var dialog = form.closest('.ui-jqdialog');
+        			var buttons = dialog.find('.EditTable');
+        			buttons.find('.EditButton select[class="ui-template"] option[value="default"]').attr("selected",false);
+        			buttons.find('.EditButton select[class="ui-template"] option[value!="default"]').attr("selected",true).change();//还需要再多加上一个change来触发
+        			buttons.find('.EditButton select[class="ui-template"]').hide();
+        			form.find('select[class="opsel"]').remove();
+        			form.find('.searchFilter table').remove()  ; //attr('align','center')
+        			buttons.find('.EditButton a[id*="_reset"]').hide().addClass('btn btn-sm btn-info').find('.ui-icon').attr('class', 'ace-icon fa fa-retweet');
+        			buttons.find('.EditButton a[id*="_query"]').addClass('btn btn-sm btn-inverse').find('.ui-icon').attr('class', 'ace-icon fa fa-comment-o');
+        			buttons.find('.EditButton a[id*="_search"]').addClass('btn btn-sm btn-purple').find('.ui-icon').css('class', 'ace-icon fa fa-search');
+        			form.find('.columns select').attr('disabled','disabled'); 
+        			form.find('.operators select').attr('disabled','disabled');
+        		}
+
+        		function beforeDeleteCallback(e) {
+        			var form = $(e[0]);
+        			if (form.data('styled'))
+        				return false;
+        			form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        			style_delete_form(form);
+        			form.data('styled', true);
+        		}
+        		function beforeEditCallback(e) {
+        			var form = $(e[0]);
+        			form.closest('.ui-jqdialog').find('.ui-jqdialog-titlebar').wrapInner('<div class="widget-header" />')
+        			style_edit_form(form);
+        		}
+        		function styleCheckbox(table) {}
+        		function updateActionIcons(table) {}
+
+        		function updatePagerIcons(table) {
+        			var replacement = {
+        				'ui-icon-seek-first' : 'ace-icon fa fa-angle-double-left bigger-140',
+        				'ui-icon-seek-prev' : 'ace-icon fa fa-angle-left bigger-140',
+        				'ui-icon-seek-next' : 'ace-icon fa fa-angle-right bigger-140',
+        				'ui-icon-seek-end' : 'ace-icon fa fa-angle-double-right bigger-140'
+        			};
+        			$('.ui-pg-table:not(.navtable) > tbody > tr > .ui-pg-button > .ui-icon').each(function() {
+        				var icon = $(this);
+        				var $class = $.trim(icon.attr('class').replace('ui-icon', ''));
+
+        				if ($class in replacement)
+        					icon.attr('class', 'ui-icon ' + replacement[$class]);
+        			})
+        		}
+        		function enableTooltips(table) {
+        			$('.navtable .ui-pg-button').tooltip({
+        				container : 'body'
+        			});
+        			$(table).find('.ui-pg-div').tooltip({
+        				container : 'body'
+        			});
+        		}
+        		$(document).one('ajaxloadstart.page', function(e) {
+        			$(grid_selector).jqGrid('GridUnload');
+        			$('.ui-jqdialog').remove();
+        		});
+        		$(pager_selector + ' #grid-pager_left span').css({'text-indent':0});
+				var navTable = $(pager_selector + ' #grid-pager_left').clone(true);
+				$(pager_selector + ' #grid-pager_left').empty();
+     			$('#grid-table_toppager_left').append(navTable);
+     			$('#grid-table_toppager_left').append(_go_back);
+        	});
+        });
+		*/
+		

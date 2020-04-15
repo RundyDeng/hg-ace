@@ -1,0 +1,260 @@
+package com.jeefw.controller.dataAnalysis;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.ServletOutputStream;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.hssf.usermodel.HSSFCell;
+import org.apache.poi.hssf.usermodel.HSSFCellStyle;
+import org.apache.poi.hssf.usermodel.HSSFFont;
+import org.apache.poi.hssf.usermodel.HSSFRow;
+import org.apache.poi.hssf.usermodel.HSSFSheet;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.google.gson.Gson;
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+import com.jeefw.service.pub.PubService;
+
+import core.support.JqGridPageView;
+import net.sf.json.JSONArray;
+import net.sf.json.JSONObject;
+@Controller
+@RequestMapping("/dataAnalysis/energyConsumingStatisContr")
+public class EnergyConsumingStatisController extends IbaseController {
+	@Resource
+	private IBaseDao baseDao ;
+	@Resource
+	private PubService todayDataService;//@1.01
+	@RequestMapping("/getEnergyConsumingStatis")
+	public void geteEnergyConsumingStatis(HttpServletRequest request ,HttpServletResponse response) throws IOException{
+		printRequestParam();
+		Calendar c = Calendar.getInstance();
+		String endDay = new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
+		c.add(Calendar.DATE, -7);
+		String beginDay = new SimpleDateFormat("yyyy-MM-dd").format(c.getTime());
+		String rWhere = " where 1=1 ";
+		if (StringUtils.isNotBlank(getParm("filters"))) {
+			JSONObject jsonObject = JSONObject.fromObject(getParm("filters"));
+			JSONArray jsonArray = (JSONArray) jsonObject.get("rules");
+			for (int i = 0; i < jsonArray.size(); i++) {
+				JSONObject result = (JSONObject) jsonArray.get(i);
+				String fieldName = result.getString("field");
+				if(fieldName.equalsIgnoreCase("AreaGuid")&& StringUtils.isBlank(result.getString("data"))){
+					rWhere += " and " + result.getString("field") + "=" + (String) request.getSession().getAttribute(AREA_GUIDS);
+ 				}else if(fieldName.equalsIgnoreCase("ddate")){
+					if(result.getString("op").equalsIgnoreCase("ge")){
+							beginDay = result.getString("data");
+					}
+					if(result.getString("op").equalsIgnoreCase("le")){
+							endDay = result.getString("data");
+					}
+				}else if(StringUtils.isNotBlank(result.getString("data"))){
+					rWhere += " and " + fieldName + "=" + result.getString("data");
+				}
+			}
+		}else{
+			String areaguids = (String) request.getSession().getAttribute(AREA_GUIDS);
+			if(org.apache.commons.lang3.StringUtils.isNoneBlank(areaguids)){
+				rWhere += " and areaguid="+areaguids;
+			}
+			
+		}
+		if(StringUtils.isNoneBlank(getParm("sidx"))&&StringUtils.isNotBlank(getParm("sord"))){
+			rWhere += " order by " + getParm("sidx") + " " +getParm("sord");
+		}
+		String areaguid=(String) request.getSession().getAttribute(AREA_GUIDS);
+		//
+//		String sql = "select t.areaguid,t.meterno,t.maxljrl,t.minljrl,t.maxddate,t.minddate,t.rl ,v1.UserCode,v1.CUSTOMID,v1.BName,v1.Ucode,v1.Fcode,v1.UName,v1.FloorNo "
+//					+" ,v2.clientcat "
+//					+" ,case v2.CLIENTCATID when 1 then v2.HOTAREA else v2.UAREA end as hotarea "
+//					+" ,t.rl*v2.PRICE as jltg "
+//					+" ,case v2.ISYESTR when 0 then  v2.CGPRICE*5.5*(case v2.CLIENTCATID when 1 then v2.HOTAREA else v2.UAREA end)*0.5 "
+//					+" else v2.CGPRICE*5.5*(case v2.CLIENTCATID when 1 then v2.HOTAREA else v2.UAREA end)*0.3 end as YJFSE "
+//					+" from "
+//					+" ( "
+//					+" select a.areaguid,a.Meterid as MeterNo,b.meternllj as maxljrl,a.meternllj as minljrl, "
+//					+" b.ddate as maxddate,a.ddate as minddate,b.meternllj-a.meternllj as rl "
+//					+" from "
+//					+" (select tmeter.* from tmeter ,tdoor_meter ,tdoor "
+//					+" where tmeter.areaguid=tdoor_meter.areaguid and autoid=1 "
+//					+" and tmeter.meterid=tdoor_meter.meterno and tdoor_meter.doorno=tdoor.doorno "
+//					+" and to_char(tmeter.ddate,'YYYY-MM-DD')= '" + beginDay + "' " + rWhere
+//					+" )a, "
+//					+" (select tmeter.* from tmeter,tdoor_meter,tdoor "
+//					+" where tmeter.areaguid=tdoor_meter.areaguid and autoid=1 "
+//					+" and tmeter.meterid=tdoor_meter.meterno and tdoor_meter.doorno=tdoor.doorno "
+//					+" and to_char(tmeter.ddate,'YYYY-MM-DD')= '" + endDay + "' " + rWhere
+//					+" )b "
+//					+" where a.areaguid=b.areaguid and a.Meterid=b.Meterid "
+//					+" ) t "
+//					+" left join VDEVICEINFOEN v1 "
+//					+" on v1.AreaGuid = t.areaguid and v1.METERNO = t.MeterNo "
+//					+" left join VCLIENTINFO v2 "
+//					+" on v2.AREAGUID = t.areaguid and v2.meterno = t.meterno order by v1.CUSTOMID";
+		String sql="select * from(select c.clientname,a.areaguid,a.AREANAME,a.buildno,a.BNAME,a.UNITNO,a.FLOORNO,a.DOORNO,a.DOORNAME,"
+				+ " a.METERNO,a.CLIENTNO,a.bname||'-'||a.unitno||'-'||a.doorname as address,c.hotarea,to_date('"+beginDay+"','yyyy-MM-dd') as MINDATE,to_date('"+endDay+"','yyyy-MM-dd') as MAXDATE,round(b.startnllj,2) as MINNLLJ,Round(b.endnllj,2) as MAXNLLJ,"
+				+ " Round(b.rlyl,2) as RLYL,round(b.rlyl/(case when c.hotarea=0 then 1 else c.hotarea end ),"
+				+ " 2) as RLDH,round(b.starttj,2) as MINTJ ,Round(b.endtj,2) as MAXTJ,Round(b.llyl,2) as llyl,"
+				+ " round(b.llyl/(case when c.hotarea=0 then 1 else c.hotarea end ),2) as lldh from (select * from vareainfo where areaguid="+areaguid+")a"
+				+ " left join(select areaguid,meterid,max(metertj) as endtj,min(metertj) as starttj,"
+				+ " max(meternllj) as endnllj,min(meternllj) as startnllj,max(meternllj)-min(meternllj) as rlyl,"
+				+ " max(metertj)-min(metertj) as llyl from  tmeter  where areaguid="+areaguid+" and  ddate between to_date('"+beginDay+" 00:00:00','yyyy-MM-dd HH24:Mi:ss')and "
+				+ " to_date('"+endDay+" 23:59:59','yyyy-MM-dd HH24:Mi:ss') and autoid=1 and meternllj>0 and metertj>0 group by areaguid,meterid)b "
+				+ " on a.AREAGUID=b.areaguid and a.METERNO=b.meterid left join tclient c on a.AREAGUID=c.areaguid and"
+				+ " a.CLIENTNO=c.clientno)"+rWhere;	
+		
+		List list = baseDao.listSqlPageAndChangeToMap(sql, getCurrentPage(), getShowRows(), null);
+		HttpSession session = request.getSession();
+		session.setAttribute("ENERGYCONSUMINGSTATIS", rWhere);
+		JqGridPageView view = new JqGridPageView();
+		view.setMaxResults(getShowRows());
+		view.setRows(list);
+		view.setRecords(baseDao.countSql(sql));
+		writeJSON(response, view);
+	}
+	@RequestMapping("/getzlData")
+	public void getzlData(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		printRequestParam();
+		String zl=request.getParameter("zl");
+		String areaguid=request.getParameter("areaguid");
+	//	String doorno=request.getParameter("doorno");
+		String sdate=request.getParameter("sdate");
+		String edate=request.getParameter("edate");
+		String customerid = request.getParameter("customerid");
+		String where = " where 1=1 ";
+		if(StringUtils.isNotBlank(getParm("customerid"))){
+			where += " and customerid = " + getParm("customerid");
+		}else{
+			
+			List<Map> tdoor_meter=baseDao.listSqlAndChangeToMap("select * from tdoor_meter where areaguid="+areaguid+" and clientno="+customerid, null);
+			where += " and meterid='"+tdoor_meter.get(0).get("METERNO")+"'";
+			
+		}
+		String sql="select to_char(ddate,'yyyy-MM-dd') as ddate,round("+zl+",2) as "+zl+" from tmeter_day "
+				        + where + " and areaguid="+areaguid
+						+ " and ddate between to_date('"+sdate+" 00:00:00','yyyy-MM-dd HH24:mi:ss') and"
+						+ " to_date('"+edate+" 23:59:59','yyyy-MM-dd HH24:mi:ss') "
+						+ " order by ddate asc";
+		List<Map> list=baseDao.listSqlAndChangeToMap(sql, null);
+		//使用Google的Json工具  
+		Gson gson = new Gson();  
+		//将JSON串返回  
+		PrintWriter out = response.getWriter();  
+		out.print(gson.toJson(list));  
+		out.flush();  
+		out.close();  
+  }
+	@RequestMapping("/updateEnergyConsumingStatis")
+	public void operEnergyConsumingStatis(HttpServletRequest request ,HttpServletResponse response) throws IOException{
+		String oper = getParm("oper");
+		String id = getParm("id");
+		String  sqlwhere = (String) request.getSession().getAttribute("ENERGYCONSUMINGSTATIS");
+		if("excel".equals(oper)){
+			String headSql=" select rownum as rn,AREANAME,clientname,CLIENTNO,METERNO,address,hotarea,MINDATE, MAXDATE,MINNLLJ,MAXNLLJ,RLYL,RLDH,MINTJ,MAXTJ,llyl,lldh "
+					+ " from(select * from(select c.clientname,a.areaguid,a.AREANAME,a.buildno,a.BNAME,a.UNITNO,a.FLOORNO,a.DOORNO,a.DOORNAME,"
+					+ " a.METERNO,a.CLIENTNO,a.bname||'-'||a.unitno||'-'||a.doorname as address,c.hotarea,to_date('"+getParm("date1")+"','yyyy-MM-dd') as MINDATE,to_date('"+getParm("date2")+"','yyyy-MM-dd') as MAXDATE,round(b.startnllj,2) as MINNLLJ,Round(b.endnllj,2) as MAXNLLJ,"
+					+ " Round(b.rlyl,2) as RLYL,round(b.rlyl/(case when c.hotarea=0 then 1 else c.hotarea end ),"
+					+ " 2) as RLDH,round(b.starttj,2) as MINTJ ,Round(b.endtj,2) as MAXTJ,Round(b.llyl,2) as llyl,"
+					+ " round(b.llyl/(case when c.hotarea=0 then 1 else c.hotarea end ),2) as lldh from vareainfo a"
+					+ " left join(select areaguid,meterid,max(metertj) as endtj,min(metertj) as starttj,"
+					+ " max(meternllj) as endnllj,min(meternllj) as startnllj,max(meternllj)-min(meternllj) as rlyl,"
+					+ " max(metertj)-min(metertj) as llyl from  tmeter  where   ddate between to_date('"+getParm("date1")+" 00:00:00','yyyy-MM-dd HH24:Mi:ss')and "
+					+ " to_date('"+getParm("date2")+" 23:59:59','yyyy-MM-dd HH24:Mi:ss') and autoid=1 and meternllj>0 and metertj>0 group by areaguid,meterid)b "
+					+ " on a.AREAGUID=b.areaguid and a.METERNO=b.meterid left join tclient c on a.AREAGUID=c.areaguid and"
+					+ " a.CLIENTNO=c.clientno)"+sqlwhere+")t";	
+			 
+			 if(StringUtils.isNotBlank(getParm("flag"))&&"1".equals(getParm("flag"))){
+				Long count = baseDao.countSql(headSql);
+				if(count<1){
+					writeJSON(response, 1);
+				}
+				return;
+			 }
+			
+			 List list = baseDao.findBySql(headSql);
+			
+			 HSSFWorkbook wb = new HSSFWorkbook();
+				HSSFSheet sheet = wb.createSheet("sheet1");
+				sheet.setDefaultColumnWidth(15);
+				HSSFCellStyle cellBorder = wb.createCellStyle();
+	            cellBorder.setBorderLeft(HSSFCellStyle.BORDER_THIN);
+	            cellBorder.setBorderRight(HSSFCellStyle.BORDER_THIN);
+	            cellBorder.setBorderTop(HSSFCellStyle.BORDER_THIN);
+	            cellBorder.setBorderBottom(HSSFCellStyle.BORDER_THIN);
+	            cellBorder.setAlignment(HSSFCellStyle.ALIGN_CENTER); 
+	    		HSSFFont font = wb.createFont();
+	            font.setFontName("仿宋_GB2312");
+	            font.setFontHeightInPoints((short) 10);
+	    		cellBorder.setFont(font);
+	            cellBorder.setWrapText(true);
+	            HSSFRow row;
+	            HSSFCell cell;
+	            if(list.size()>0){
+	            	String strTitles = "序号，小区名称，住户姓名，用户编号，表编号，地址，使用面积(㎡)，起始时间，终止时间，起始热量(KWH)，"
+	            			+ "终止热量(KWH)，耗热量(KWH/㎡)，热量单耗(KWH)，起始流量(t)，终止流量(t)，耗流量(t)，流量单耗(t/㎡)";
+	            	sheet.setColumnWidth(1, 5700);
+	            	sheet.setColumnWidth(3, 7700);
+	            	sheet.setColumnWidth(5, 7700);
+	            	sheet.setColumnWidth(6, 5700);
+	            	sheet.setColumnWidth(7, 7700);
+	            	sheet.setColumnWidth(8, 7700);
+	            	sheet.setColumnWidth(9, 7700);
+	            	sheet.setColumnWidth(10, 7700);
+	            	sheet.setColumnWidth(11, 7700);
+	            	sheet.setColumnWidth(12, 7700);
+	            	sheet.setColumnWidth(13, 7700);
+	            	sheet.setColumnWidth(14, 7700);
+	            	sheet.setColumnWidth(15, 7700);
+	            	setExcelTitleStr(strTitles, wb , sheet);
+
+	            	for (int i = 0; i < list.size(); i++) {
+	            		
+	                	row = sheet.createRow(i+1);
+	                	row.setHeight((short)360);
+	                	Object[] os =  (Object[])list.get(i);
+	    				for (int j = 0; j < os.length; j++) {
+	    					cell = row.createCell(j);
+	    					if(os[j] == null){
+	    						cell.setCellValue("");
+	    					}else{
+	    						cell.setCellValue(os[j].toString());
+	    					}
+	    					cell.setCellStyle(cellBorder);
+	    				}
+	    			}
+	            }
+	            
+				try {
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+	                wb.write(baos);
+	                response.addHeader("Content-Disposition", "attachment;filename="
+							+ new String( "住户耗热量统计".getBytes("gb2312"), "ISO8859-1" ) + ".xls");
+	                response.setContentType("application/vnd.ms-excel");
+	                response.setContentLength(baos.size());
+	                
+	                ServletOutputStream out1 = response.getOutputStream();
+	                baos.writeTo(out1);
+	                out1.flush();
+	                out1.close();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+				
+		}
+	}
+}

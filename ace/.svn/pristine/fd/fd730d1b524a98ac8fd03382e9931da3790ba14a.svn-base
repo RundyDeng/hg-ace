@@ -1,0 +1,62 @@
+package com.jeefw.controller.monitorData;
+
+import java.io.IOException;
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
+import com.jeefw.controller.IbaseController;
+import com.jeefw.dao.IBaseDao;
+
+//住户运行曲线
+@Controller
+@RequestMapping("/monitorData/clientChartsContr")
+public class ClientChartsController extends IbaseController{
+	@Resource
+	private IBaseDao baseDao;
+	
+	@RequestMapping("/getClientChartsByFiledName")
+	public void getClientChartsByFiledName(HttpServletRequest request,HttpServletResponse response) throws IOException{
+		printRequestParam();
+		String sql = "SELECT t.DDATE,round(t." + getParm("filedName") + ",2) as " + getParm("filedName")
+				   	+ " from "+switchOnTimeTableByName("tmeter")+" t,vareainfo v"
+				   	+ " where t.areaguid = v.AREAGUID and t.meterid = v.METERNO"
+				   	+ " and t.ddate between TO_DATE('" + getParm("beginDate") + "','yyyy-MM-dd')"
+				    + " and TO_DATE('" + getParm("endDate") + "','yyyy-MM-dd')+1";
+		if(StringUtils.isNotBlank(getParm("clientno"))){
+			sql += " and v.clientno='" + getParm("clientno") +"'";
+		}else{
+			sql += " and v.areaguid ='"+getParm("areaguid") // + "' and v.buildno='"+getParm("buildno")
+				+ "' and v.unitno=" + getParm("unitno") + " and v.floorno=" + getParm("floorno")
+				+ " and v.doorno=" + getParm("doorno");
+		}
+		
+		//只显示一条- -
+		if(StringUtils.isNotBlank(getParm("meterid"))){
+			sql += " and t.meterid = " + getParm("meterid");
+		}else if(StringUtils.isNotBlank(getParm("clientno"))){
+			sql += " and t.meterid=(select min(meterno) from tdoor_meter where clientno = '" + getParm("clientno") + "') ";
+		}else{
+			sql += " and t.meterid=(select min(meterno) from tdoor_meter where areaguid = "+getParm("areaguid") + " and doorno = " +getParm("doorno") +" ) ";
+		}
+		sql += " order by t.ddate";
+		
+		List list = baseDao.findBySqlList(sql, null);
+		
+		String str = "";
+		for (int i = 0; i < list.size(); i++) {
+			str += "\n";
+			Object[] obj = (Object[])list.get(i);
+			str += obj[0].toString()+","+obj[1].toString();
+		}
+		response.setContentType("text/plain;charset=utf-8");
+		response.getWriter().write(str);
+		
+	}
+}

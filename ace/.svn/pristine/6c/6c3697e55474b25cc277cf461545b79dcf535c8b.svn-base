@@ -1,0 +1,547 @@
+<%@ page language="java" contentType="text/html; charset=utf-8"
+	pageEncoding="utf-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@page import="java.text.SimpleDateFormat"%>
+<%@page import="java.util.Calendar"%>
+<c:set var="contextPath" value="${pageContext.request.contextPath}"></c:set>
+<!DOCTYPE html>
+<html lang="zh-cn">
+<head>
+	<!-- <meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="viewport"
+		content="width=device-width, 
+	                                     initial-scale=1.0, 
+	                                     maximum-scale=1.0, 
+	                                     user-scalable=no"> -->
+	<title>供热大数据智慧运行系统</title>
+	<link rel="stylesheet" href="${contextPath}/static/assets/css/bootstrap.css" />
+	<link rel="stylesheet" href="${contextPath}/static/assets/css/jquery-ui.css" />
+	<link rel="stylesheet" href="${contextPath}/static/assets/css/ui.jqgrid.css" />
+	<link rel="stylesheet" href="${contextPath}/static/pageclock/compiled/flipclock_statistic.css" />
+		
+	<link rel="stylesheet" href="${contextPath}/static/litdatepicker.css" />
+	<link rel="stylesheet" href="${contextPath}/static/assets/css/ace.css"
+	class="ace-main-stylesheet" id="main-ace-style" />
+	
+		<link rel="stylesheet" href="${contextPath}/static/bootstrap-4.0/css/bootstrap-datetimepicker.min.css" />
+	<%-- <script
+		src="${contextPath}/static/assets/js/jquery-ui.js"></script>
+	<script
+		src="${contextPath}/static/assets/js/jqGrid/jquery.jqGrid.js"></script>
+	<script
+		src="${contextPath}/static/assets/js/jqGrid/i18n/grid.locale-cn.js"></script>
+	<script
+		src="${contextPath}/static/pageclock/compiled/flipclock.js"></script> --%>
+		
+
+	<style type="text/css">
+		.table-bordered, .table-bordered td, .table-bordered th{
+			border: 1px solid #c6cbce;
+		}
+		tbody th{
+			font-weight: unset;
+		}
+	
+		
+.ui-dialog .ui-dialog-titlebar-close::before, .ui-jqdialog .ui-dialog-titlebar-close::before, .ui-dialog .ui-jqdialog-titlebar-close::before, .ui-jqdialog .ui-jqdialog-titlebar-close::before {
+
+    content: "x";
+    }
+		
+	</style>
+</head>
+
+<body onload="load()">
+
+	<!-- <div class="container-fluid" style="background-color: #f7f7f9;"> -->
+		
+<style>
+     .flip-clock-wrapper ul{
+        margin: 3px;
+    }
+    #build_th th{
+        min-width: 69px;
+    }   
+  @media screen and (max-width: 415px){
+   		#date_compare{
+   		 margin-top: 1%;
+   		 margin-bottom: 1%;
+   		}
+   		
+   /* 		#btn_search{
+   			margin-right: 20%;
+   		} */
+   }
+   
+</style>
+		
+<br/>
+<div>
+
+
+
+		<img src="${contextPath}/static/image/gongrejidurishufenxi.png" /> 
+
+<div align="center">吴忠市两个供暖季度日数的对比图，以便能耗比对时进行修正。</div>
+		<%-- <div class="row" style="height: 30px;">
+			<!-- 选择小区 -->
+			<!-- <div class="col-md-3">
+				<div class="input-group">
+					  <span class="input-group-addon" id="basic-addon3">选择小区: </span>
+					  <select id="search_areaname" class="form-control">
+					  	
+					  </select>
+					  <input type="text" class="form-control" id="search_areaname"  aria-describedby="basic-addon3">
+				</div>
+			</div> -->
+			
+			<!-- 选择时间 -->
+			<div class="col-md-3 col-sm-4 col-xs-12">
+				<div class="input-group" >
+					  <span class="input-group-addon" id="basic-addon3">选择时间: </span>
+					  
+<%
+	String today = (String)request.getParameter("day");
+	if(today==""||today==null){
+		Calendar c = Calendar.getInstance();
+	    today = new SimpleDateFormat("yyyy").format(c.getTime());
+	}
+%>
+					<input type="text" class="form-control" value="<%=today%>" id="input_sel_date" readonly="readonly" aria-describedby="basic-addon3">
+
+
+					<!-- <select id="input_sel_date" >
+					  	<option value="2017">2017</option>
+					  	<option value="2016">2016</option>
+					  	<option value="2015">2015</option>
+					  	<option value="2014">2014</option>
+					  </select>   -->
+				</div>
+			</div>
+			
+			
+	<!-- 		对比时间 -->
+			<div class="col-md-3 col-sm-4 col-xs-12" id="date_compare">
+				<div class="input-group" >
+					  <span class="input-group-addon" id="basic-addon3">对比时间: </span>
+					  					
+						<input type="text" class="form-control" value="<%=today%>" id="input_sel_date2" readonly="readonly" aria-describedby="basic-addon3">
+
+					<!--    <select id=input_sel_date2>
+					  		<option value="2016">2016</option>
+					  		<option value="2015">2015</option>
+					  		<option value="2014">2014</option>
+					  </select> -->
+					  
+				<!-- 	  <select id="yonghu" class="form-control">
+					  	
+					  </select> -->
+				</div>
+			</div>
+			
+			
+			<!-- 查询按钮 -->
+			<!-- 返回按钮 -->
+			<div class="col-md-3 col-sm-4 col-md-offset-0 col-sm-offset-0 col-xs-2 col-xs-offset-8" id="btn_search">
+				<button style="border-width: 0px" type="button" class="btn btn-success" id="build_data_search">查&nbsp;&nbsp;&nbsp;&nbsp;询</button>
+				<!-- <button type="button" onClick = "javascript:history.back();" class="btn btn-success-outline">返&nbsp;&nbsp;回</button> -->
+			</div>
+		</div>	
+		
+		</div>
+		<br/>
+		
+		<div class="row" style="overflow: auto; margin-left: 1px; margin-right: 1px;">
+		    
+			      <!--表格 class="table table-bordered table-hover table-striped"表格样式  table-hover水平线 table-bordered边框 table-hover高亮显式-->
+			    <table id="build_table" class="table table-bordered table-hover table-striped" style="margin-bottom: 0px;">
+					  <!-- <thead>
+					    <tr id="build_th">
+					      
+					    </tr>
+					  </thead>
+					  <tbody id="build_td">
+                        
+				      </tbody> -->
+					</table>		      
+ 		 </div>
+        
+        <div class="row" style="margin-top:20px;margin-left: 10px; margin-right: 1px;word-break:break-all;">
+        	<!--柱状图  -->
+            <div class="col-md-7" style="border:0px solid red;overflow-x: auto;">
+              
+				<div id="3d-column" style="min-width:570px;margin-left: 30px;min-height: 450px;"></div>
+            </div>
+            
+            <!-- 饼状图 -->
+         <!--    <div class="col-md-5" style="border:0px solid red;min-height: 450px;">
+            	
+                <div id="3d-pie"></div>
+            </div> -->
+        </div>	
+	</div> --%>
+	
+	<script type="text/javascript">
+   
+	</script>
+</body>
+</html>
+
+<script>
+var scripts = [ null,'${contextPath}/static/assets/js/jquery-ui.js',
+                "${contextPath}/static/assets/js/jqGrid/i18n/grid.locale-cn.js",
+                "${contextPath}/static/pageclock/compiled/flipclock.js",
+                "${contextPath}/static/Highcharts-4.2.5/js/highcharts.js",
+                //"${contextPath}/static/old/highcharts.js",
+                 
+                "${contextPath}/static/Highcharts-4.2.5/js/highcharts-3d.js",
+	   			"${contextPath}/static/Highcharts-4.2.5/js/modules/data.js",
+	   			"${contextPath}/static/Highcharts-4.2.5/highslide-full.min.js",
+	   			"${contextPath}/static/Highcharts-4.2.5/highslide.config.js", 
+	   			"${contextPath}/static/bootstrap-4.0/js/bootstrap-datetimepicker.js", 
+	   			/* "${contextPath}/static/Highcharts-4.2.5/js/modules/exporting.js", */
+                null ];
+var page = 1;          
+$('.page-content-area').ace_ajax('loadScripts', scripts, function() {
+	   	/* get请求 */
+	$.get('${contextPath}/sys/todaydata/getAreaDownList',function(data){
+		var areaguid = '<%=(String)request.getSession().getAttribute("areaGuids") %>';  
+		var urlParm = '<%=(String)request.getParameter("areaguid")%>';
+		if(urlParm!='null') areaguid = urlParm;
+		var flagName = '';
+			var response = jQuery.parseJSON(data);
+		      var s = '';
+		      if (response && response.length) {
+		          for (var i = 0, l = response.length; i < l; i++) {
+			           var ri = response[i];
+			           
+			           /* <option value = " "> </option> */
+		        	   s += '<option value="' + ri['AREAGUID'] + '">' + ri['AREANAME'] + '</option>';   
+		          }
+		       }
+		      /* <script> $(select option[ ]).change().attr() ; if */
+		      s += "<script>$('select option[value=\""+areaguid+"\"]').change().attr('selected',true);if('<%=(String)request.getParameter("areaguid")%>'!='null') $('#build_data_search').click();</sc"+"ript>  ";
+		      $('#search_areaname').empty().append(s);
+	})
+	
+	 $("#input_sel_date2").datetimepicker({
+	     startView: 'decade',
+	        minView: 'decade',
+	        format: 'yyyy',
+	        maxViewMode: 2,
+	        minViewMode:2,
+	        autoclose: true
+	}); 
+	
+	   	
+    $('#input_sel_date').datetimepicker({
+        startView: 'decade',
+        minView: 'decade',
+        format: 'yyyy',
+        maxViewMode: 2,
+        minViewMode:2,
+        autoclose: true
+    });
+	   	
+	
+	
+	var _date,_date2;
+	
+/*
+点击查询按钮
+*/
+	$('#build_data_search').click(function(){
+		page = 1;
+		_date = $('#input_sel_date').val();
+		
+		var start_date =parseInt(_date)-1;
+		
+		_date2 = $('#input_sel_date2').val();
+		
+		var start_date2 =parseInt(_date2)-1;
+		
+	//	alert(start_date + "-" + _date);
+		
+   //    var areaguid = $('#input_sel_date2').val();
+      //  if(areaguid==''||areaguid==null) return;
+		
+		
+        $.get('${contextPath}/dataanalysis/cainuananalysiscontr/getcaiNuananalysis?date2='+_date2+'&date='+_date,function(response){
+            var productData = jQuery.parseJSON(response);
+      //      alert(productData);
+      
+   
+            console.log(productData);
+            
+//			alert(parseInt(_date)-1);		
+		//	console.log(parseInt(_date)-1);
+             
+    /*           var data = [{"month": "11月","data1":461.8,"data2":401.5,"percent":-15.01},
+            			{"month": "12月","data1":746.9,"data2":606.6,"percent":-23.12},
+            			{"month": "1月","data1":688.9,"data2":769.5,"percent":10.47},
+            			{"month": "2月","data1":527.8,"data2":574.3,"percent":8.1},
+            			{"month": "3月","data1":339.4,"data2":369.6,"percent":8.18},
+            			{"month": "合计","data1":2764.8,"data2":2721.5,"percent":-1.59}];  */
+                          
+            tabledata(productData,start_date + "-" + _date,start_date2 + "-" + _date2);
+        
+   //    tabledata(data1,data2,data3);
+           
+            var clstr = new Array();
+            var serstr = new Array();
+            var slstr = [];
+            var ydata = new Array();
+            var ydata2 = new Array();
+            var ydata3 = new Array();
+
+            var sum = 0;
+            
+             $.each(productData, function (i) {
+            	 //month
+                clstr[i] = productData[i].month;
+            	 //data2
+                serstr[i] = Number(productData[i].data2);
+            	 //data1
+                ydata2[i] = Number(productData[i].data1);
+          //      ydata3[i] = Math.abs(Number(productData[i].平均温差));
+
+    /*             var item = [];
+                item.push(productData[i].楼栋号);
+                item.push(Number(((Math.abs(Number(productData[i].平均温差)) / sum) * 100).toFixed(2)));
+                slstr.push(item); */
+
+            }); 
+            
+    //        clstr=["11月","12月","1月","2月","3月"];
+       		//data2
+     //       serstr=[401.5,746.9,769.5,574.3,369.6];
+       		//
+  //          ydata2=[461.8,606.6,688.9,527.8,339.4];
+           
+            InitLine(clstr, serstr, ydata2, ydata3, start_date + "-" + _date,start_date2 + "-" + _date2);
+           // InitPie(slstr);     
+                   
+            _J_setAreaGuid(onSearch_putDown_areaguid('search_areaname'),onSearch_putDown_areaname('search_areaname'));
+        })	
+	});
+	
+});
+
+function showTable(productData){
+	var trs = "<tr><td style='min-width: 170px;'>供热季</td>";
+	 $.each(productData, function (j, m) {
+	        trs += "<td style='min-width: 60px;'>" + m.month +"</td>";
+	 });
+    trs += "<td>合计</td></tr>"
+    var td = "<tr><td>"+ parseInt(_date)-1 + _date +"</td>";
+    var total1=0;
+    $.each(productData, function (i, n) {
+        td += "<td>" + n.data1 + "</td>";
+		total1+=n.data;
+    });
+    td += "<td>"+total1.toFixed(1)+"</td></tr>";
+    
+    var tds = "<tr><td>15-16</td>";
+    var total2 = 0;
+    $.each(productData, function (a, b) {
+        tds += "<td>" + b.data2 + "</td>";
+		total2 +=b.data;
+    });   
+    tds += "<td>"+total2.toFixed(1)+"</td></tr>";
+    
+    var tb="<tr><td>百分比</td>";
+   $.each(productData, function (c, d) {
+       tb += "<td>" + d.percent+ "</td>";
+
+   });
+   tb+="</tr>";
+   
+ 	var tt = trs+td+tds+tb;
+   /*empty()删除选中元素所有内容，包括所有文本和子节点      append()在元素结尾追加内容 */
+    $("#build_table").empty().append(tt);
+} 
+
+
+	function tabledata(productData , date1, date2){
+		var trs = "<tr><th style='min-width: 170px;'>供热季</th>";
+        $.each(productData, function (j, m) {
+            trs += "<th style='min-width: 60px;'>"+ m.month + "</th>";
+
+        });
+        trs += "</tr>"
+        var td = "<tr><td>"+ date1 +"</td>";
+        $.each(productData, function (i, n) {
+            td += "<td>" + n.data1 + "</td>";
+
+        });
+        td += "</tr>";
+        var tds = "<tr><td>" +date2+ "</td>";
+        $.each(productData, function (a, b) {
+            tds += "<td>" + b.data2 + "</td>";
+
+        });
+        tds += "</tr>";
+        var tb = "<tr><td>百分比</td>";
+        $.each(productData, function (c, d) {
+            tb += "<td>" + d.percent + "</td>";
+
+        });
+        tb += "</tr>";
+        tbody = trs + td + tds + tb ;
+        $("#build_table").empty().append(tbody);
+	} 
+
+
+  	function showTable(productData){
+		var trs = "<tr><th style='min-width: 170px;'>分析项目vvv</th>";
+        $.each(productData, function (j, m) {
+            trs += "<th style='min-width: 60px;'><a href='${contextPath}/sys/sysuser/home#page/todaydata?buildno="+m.BUILDNO+"&day="+$('#input_sel_date').val()+"'>" + m.楼栋号 + /* "栋"+ */ "</a></th>";
+
+        });
+        trs += "</tr>"
+        var td = "<tr><td>平均进水温度(℃)</td>";
+        $.each(productData, function (i, n) {
+            td += "<td>" + n.平均进水温度 + "</td>";
+
+        });
+        td += "</tr>";
+        var tds = "<tr><td>平均回水温度(℃)</td>";
+        $.each(productData, function (a, b) {
+            tds += "<td>" + b.平均回水温度 + "</td>";
+
+        });
+        tds += "</tr>";
+        var tb = "<tr><td>平均温差(℃)</td>";
+        $.each(productData, function (c, d) {
+            tb += "<td>" + d.平均温差 + "</td>";
+
+        });
+        tb += "</tr>";
+        var tbs = "<tr><td>分析对象(户)</td>";
+        $.each(productData, function (c, d) {
+            tbs += "<td>" + d.户数 + "</td>";
+         
+        });
+        tbs += "</tr>";
+        tbody = trs + td + tds + tb + tbs;
+
+        $("#build_table").empty().append(tbody);
+	} 
+	
+	function InitPie(m) {
+	    $('#3d-pie').highcharts({
+	    	
+		 	exporting: {
+                enabled:false
+    		},
+	        chart: {
+	        	backgroundColor: 'rgb(247, 247, 249)',
+	            
+	            options3d: {
+	                enabled: true,
+	                alpha: 45,
+	                beta: 0
+	            }
+	        },
+	        credits: {
+		          enabled: false  
+		        },
+	        title: {
+	            text: '小区楼栋平均温差数据饼状图'
+	        },
+	        tooltip: {
+	            pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>'
+	        },
+	        plotOptions: {
+	            pie: {
+	                allowPointSelect: true,
+	                cursor: 'pointer',
+	                depth: 35,
+	                dataLabels: {
+	                    enabled: true,
+	                    format: '{point.name}'
+	                }
+	            }
+	        },
+	        series: [{
+	            type: 'pie',
+	            name: '平均温差',
+	            data: m
+	        }]
+	    });
+
+	}
+	function InitLine(a, b, c, d,section1 ,section2) {
+	    $('#3d-column').highcharts({
+	        chart: {
+	        	backgroundColor: 'rgb(247, 247, 249)',
+	            type: 'line'
+	        },
+	        credits: {
+		          enabled: false  
+		        },
+	        title: {
+	           text: section1+"与"+section2+"季度日数分析"        	
+	        },
+	        subtitle: {
+	            text: ''
+	        },
+	        xAxis: {
+	            categories: a,
+	            gridLineWidth: 0,
+	            
+	        },
+	        yAxis: {
+	          //  min: 0,
+	            title: {
+	                text: ''
+	            },
+	           tickInterval: 100,
+	           gridLineWidth: 0,
+               lineWidth: 1,
+               tickWidth: 1,              
+	        },
+
+	        plotOptions: {
+	            column: {
+	                pointPadding: 0.2,
+	                borderWidth: 0
+	            },
+	            series:{
+	            	dataLabels:{
+	            		enabled:true,
+	            		format:'{y}'
+	            	}
+	            }
+	        },
+	        tooltip:'null',
+	        /* tooltip: {
+	            shared: true,
+	            useHTML: true,
+	            headerFormat: '<small>{point.key}</small>',
+	            pointFormat: '<table><tbody><tr><td style="color:{series.color};padding:0">{series.name}: </td><td style="padding:0"><b>{point.y} ℃</b></td></tr></tbody></table>',
+	            footerFormat: '',
+	            valueDecimals: 2
+	        }, */
+	        series: [{ name: section2,
+	            data: b
+	        },
+	                         { name: section1,
+	                             data: c,
+	                     
+	                         },
+	                        /*  { name: '燃指标',
+	                             data: d
+	                         } */],
+	                         
+
+	    });
+	}
+	
+	function load()
+	{
+		alert("页面已经载入！");
+	}
+   
+</script>

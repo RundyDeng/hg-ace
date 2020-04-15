@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:aop="http://www.springframework.org/schema/aop" xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans classpath:org/springframework/beans/factory/xml/spring-beans-4.0.xsd
+				http://www.springframework.org/schema/context classpath:org/springframework/context/config/spring-context-4.0.xsd
+				http://www.springframework.org/schema/aop classpath:org/springframework/aop/config/spring-aop-4.0.xsd
+				http://www.springframework.org/schema/tx classpath:org/springframework/transaction/config/spring-tx-4.0.xsd
+				http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+<!-- 代码中得到当前用户：Subject currentUser = SecurityUtils.getSubject(); 
+Subject代表了当前用户的安全操作
+SecurityManager则管理所有用户的安全操作。
+Realm充当了Shiro与应用安全数据间的“桥梁”或者“连接器"。也就是说
+，当切实与像用户帐户这类安全相关数据进行交互，执行认证（登录）和授权（访问控制）时，Shiro会从应用配置的Realm中查找很多内容。
+-->
+
+	<bean id="securityManager" class="org.apache.shiro.web.mgt.DefaultWebSecurityManager">
+		<property name="realm" ref="shiroSecurityRealm" /><!-- 由注解提供;shiro本身就提供了几个Realm,但一般我们自己实现 -->
+	</bean>
+    
+    <bean id="shiroFilter" class="org.apache.shiro.spring.web.ShiroFilterFactoryBean">
+        <property name="securityManager" ref="securityManager"/>
+        <!-- 在处理，没有登录的用户请求时，需要登录页面的话就会自动跳转到此页面 ；不是必要属性，不输入的话会自动寻找webroot下的login.jsp-->
+        <property name="loginUrl" value="/login.jsp"/>
+        <!-- 登录成功跳转页； -->
+        <property name="successUrl" value="/sys/sysuser/home"/>
+        <!-- 没有权限时跳转页 -->
+        <property name="unauthorizedUrl" value="/sys/sysuser/callUnauthorized"/>
+        
+        <!-- value部分的 authc,roles只是filter的别名。如要更改别名，可以通过filters来改变。
+         把PassThruAuthenticationFilter添加别名为authc，这时/admin请求会交给PassThruAuthenticationFilter处理，
+         替换了原来由 FormAuthenticationFilter来处理。-->
+        <property name="filters">
+            <util:map>
+                <entry key="authc">
+                    <bean class="org.apache.shiro.web.filter.authc.PassThruAuthenticationFilter"/>
+                </entry>
+            </util:map>
+        </property>
+        
+        <!-- filterChainDefinitions是对请求拦截的配置 -->
+        <property name="filterChainDefinitions">
+        	<!-- 具体解释在最后
+        	 -->
+            <value>
+            	/static/** = anon
+            	/assets/** = anon
+            	/index.jsp = anon
+            	/login.jsp = anon
+            	/sys/sysuser/login = anon
+            	/sys/sysuser/register = anon
+            	/sys/sysuser/retrievePassword = anon
+            	/client/face = anon
+            	/sys/sysuser/logout = logout
+            	/** = authc
+            </value>
+        </property>
+    </bean>
+    
+    <!-- Post processor that automatically invokes init() and destroy() methods -->
+    <bean id="lifecycleBeanPostProcessor" class="org.apache.shiro.spring.LifecycleBeanPostProcessor"/>
+    
+</beans>
+
+

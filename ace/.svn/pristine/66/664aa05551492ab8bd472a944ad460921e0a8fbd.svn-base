@@ -1,0 +1,493 @@
+package core.util.LibDSCServer;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.Socket;
+
+public class DSCConnection {
+	public static void main(String[] args) throws Exception {
+		DSCConnection dscConnection = new DSCConnection("192.1.4.4", 10005);
+		int i = dscConnection.requestAsyncCall(0, "53200060043", DSCConnection.StrToByte("68000768540000010501015C16"));
+		
+		String retId = "";
+        int retCmdSeq = 0;
+        byte[] retFrame;
+        retFrame = dscConnection.response(1, retId, retCmdSeq);//接收
+	}
+	
+	
+	/// <summary>
+    /// 每次接收的字节数
+    /// </summary>
+    private static int MAX_RECVLEN = 1024 * 100;
+    private int recv_timeout = 1000 * 60 * 10;
+    private int cmd_priority = 3;
+    private String ip;
+    private int port;
+   /* private TcpClient tcpClient;
+    private NetworkStream stream;*/
+    private Socket tcpClient;
+    private InputStream inputStream;
+    private PrintWriter printWriter;
+    private String raw_data;
+    
+    private int cmdSeq = 0;// 序号
+    
+    
+    public DSCConnection(){
+    	
+    }
+    public DSCConnection(String ip, int port)
+    {
+        this.ip = ip;
+        this.port = port;
+    }
+    public DSCConnection(String ip, int port, int recv_timeout)
+    {
+        this.ip = ip;
+        this.port = port;
+        this.recv_timeout = recv_timeout;
+    }
+    public DSCConnection(String ip, int port, int recv_timeout, int cmd_priority)
+    {
+        this.ip = ip;
+        this.port = port;
+        this.recv_timeout = recv_timeout;
+        this.cmd_priority = cmd_priority;
+    }
+    /// <summary>
+    /// 析构函数，用于释放
+    /// </summary>
+    /*~DSCConnection()
+    {
+        this.Close();
+    }*/
+    
+    /// <summary>
+    /// 自动生成命令序号
+    /// </summary>
+    /// <returns>命令序号</returns>
+    private int getCmdSeq()
+    {
+        return ++cmdSeq;
+    }
+
+  /// 打开连接
+    /// </summary>
+    private boolean Open()
+    {
+
+        if (tcpClient != null)
+        {
+            if (tcpClient.isConnected())
+            {
+                return true;
+            }
+        }
+        try
+        {
+            //如果有出错，调用了Close就会Free了。所以这里要重新创建一个
+            raw_data = "";
+            tcpClient = new Socket(ip, port);
+            //recv_timeout单位为秒，tcpClient.ReceiveTimeout单位为豪秒
+            //tcpClient.ReceiveTimeout = recv_timeout * 1000;
+            //tcpClient.ReceiveBufferSize = MAX_RECVLEN*100;
+            //bufferedReader = new BufferedReader(new InputStreamReader(tcpClient.getInputStream()));
+            inputStream = tcpClient.getInputStream();
+            
+            printWriter = new PrintWriter(tcpClient.getOutputStream(), true);
+        }
+        catch (Exception ex)
+        {
+            System.out.println("连接通讯服务器失败");
+        }
+        return true;
+    }
+    
+    // 检查是否连接
+    public boolean Connected()
+    {
+        if (tcpClient != null)
+        {
+            if (tcpClient.isConnected())
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+  /// 关闭
+    /// </summary>
+    public void Close() throws IOException
+    {
+        if (tcpClient != null)
+        {
+            if (tcpClient.isConnected())
+            {
+            	inputStream.close();
+                printWriter.close();
+                tcpClient.close();
+            }
+        }
+    }
+    
+    /// 发送一个命令
+    /// </summary>
+    /// <param name="cmd"></param>
+    public void sendCmd(String cmd) throws IOException
+    {
+        //测试连接是否打开
+        Open();
+        try
+        {
+            //Byte[] buffer = System.Text.Encoding.ASCII.GetBytes(cmd);//字符转换成字节数组
+            //stream.Write(buffer, 0, buffer.Length);//写入流
+            //stream.Flush();
+        	printWriter.print(cmd);
+        	printWriter.flush();
+        }
+        catch (Exception e)
+        {
+            this.Close();
+            System.out.println(" 数据发送失败");
+        }
+
+    }
+    
+    
+    /// <summary>
+    /// 接收一个命令
+    /// </summary>
+    /// <returns></returns>
+    public String recvCmd() throws IOException
+    {
+        //测试连接是否打开
+        if (!Connected())
+        {
+            System.out.println(" 未连接");
+        }
+        String ret = "";
+        try
+        {
+            Byte[] data = new Byte[MAX_RECVLEN];
+            while (true)
+            {
+                //ret = utils.StrSplit(ref raw_data, "# ", true);
+            	//ret = StrSplit(raw_data, "# ", true);  //////////////////////////////////  ref raw_data
+                if (raw_data.contains("# "))//不等于空串，退出循环
+                { 
+                    break;
+                }
+                
+                int no = inputStream.available();
+                byte[] b = new byte[no];
+                inputStream.read(b, 0, no);
+                String s = new String(b,0,no);
+                raw_data += s;
+            }
+            System.out.println("======================================");
+            System.out.println(raw_data);
+        }
+        catch (Exception ex)
+        {
+        	this.Close();
+            System.out.println("数据接收失败");
+        }
+        return raw_data;
+    }
+    /// <summary>
+    /// 创建命令字符串
+    /// </summary>
+    /// <param name="protocol">协议ID</param>
+    /// <param name="id">设备ID</param>
+    /// <param name="frame">要发送的数据帧</param>
+    /// <returns>返回命令字符串</returns>
+    private String buildCmd(int protocol, String id, byte[] frame) throws Exception
+    {
+        String cmdFmt = "";
+        switch (protocol)
+        {
+            case 0:
+            case 2:
+            case 3:
+                cmdFmt = "request %d %d %s,0x89,%s\r\n";
+                break;
+            case 1:
+                cmdFmt = "request %d %d %s,%s\r\n";
+                break;
+            default:
+                throw new RuntimeException("协议号错误！");
+        }
+        String data = getHexString(frame);//字节转换成16进字符串
+        int cmdSeq = this.getCmdSeq();
+        String format = String.format(cmdFmt, protocol, cmdSeq, id, data);
+        return format;
+
+    }
+    
+    
+  /// <summary>
+    /// 解析返回的字符串
+    /// </summary>
+    /// <param name="protocol">协议ID</param>
+    /// <param name="retString">DSC返回的待解析的字符串</param>
+    /// <param name="id">设备ID out</param>
+    /// <param name="retCmdSeq">命令序号 out</param>
+    /// <returns>抄读返回的数据帧</returns>                 //下2个也是ref
+    private byte[] parseCmd(int protocol, String retString, String id, int retCmdSeq) throws UnsupportedEncodingException
+    {
+        String retCmd = "";
+        String stateCode = "";
+        id = "";
+        retCmdSeq = -1;
+
+        if (retString != null)
+        {
+            String[] strList = retString.split("\n");//拆分字符串
+            if (strList.length < 3)
+            {
+                throw new RuntimeException("DSC返回数据格式错误！");
+            }
+            try
+            {
+                stateCode = strList[0].trim();
+                //retCmdSeq = Int32.Parse(strList[1].trim());//字符串转32位有符号整数
+                retCmdSeq = Integer.parseInt(strList[1].trim());
+                retCmd = strList[2].trim();
+            }
+            catch (Exception e)
+            {
+            	throw new RuntimeException("返回数据格式错误!");
+            }
+
+            if (!"OK".equals(stateCode))
+            {
+                //这里显示中文有问题
+                //Byte[] buffer = System.Text.Encoding.ASCII.GetBytes(retCmd);
+                //retCmd = System.Text.Encoding.Default.GetString(buffer);
+                //throw new ResponseException(retCmdSeq, retCmd);
+            	throw new RuntimeException(retCmdSeq+retCmd);
+            }
+
+
+
+            String[] vlist = retCmd.split(",");
+            id = vlist[0].trim();
+
+            if (vlist.length == 3)
+            {
+                if (id == "")
+                {
+                    protocol = 3;
+                }
+                else
+                {
+                    protocol = 0;
+                }
+            }
+            else if (vlist.length == 2)
+            {
+                protocol = 1;
+            }
+            else
+            {
+                //throw new ResponseException(retCmdSeq, "DSC返回命令格式错误！");
+            	throw new RuntimeException("DSC返回命令格式错误！");
+            }
+            if (protocol == 0)
+            {
+                if (vlist.length != 3)
+                {
+                    //throw new ResponseException(retCmdSeq, "DSC返回命令格式错误！");
+                	throw new RuntimeException("DSC返回命令格式错误！");
+                }
+                if ("0x89".equals(vlist[1]))
+                {
+                    //throw new ResponseException(retCmdSeq, "DSC返回命令格式错误！");
+                    throw new RuntimeException("DSC返回命令格式错误！");
+                }
+                retCmd = vlist[2];
+            }
+            else if (protocol == 1)
+            {
+                if (vlist.length != 2)
+                {
+                    //throw new ResponseException(retCmdSeq, "DSC返回命令格式错误！");
+                	throw new RuntimeException("DSC返回命令格式错误！");
+                }
+                retCmd = vlist[1];
+            }
+            else if (protocol == 3)
+            {
+                retCmd = vlist[2];
+            }
+            if (retCmd.contains("ERR1"))//是否包含ERR1
+            {
+                //throw new ResponseException(retCmdSeq, "返回ERR1错误！");
+            	throw new RuntimeException("返回ERR1错误！");
+            }
+            if (retCmd.contains("OK") || retCmd.contains("ERR"))
+            {
+                //燃气的组网返回OK..
+                //return System.Text.Encoding.ASCII.GetBytes(retCmd);
+            	return retCmd.getBytes("US-ASCII");
+            }
+            else
+            {
+                //转换格式
+                return StrToByte(retCmd);
+            }
+        }
+        else
+        {
+            //throw new DSCException("没有返回数据!");
+        	throw new RuntimeException("没有返回数据!");
+        }
+    }
+    
+    
+  /// <summary>
+    /// 发送数据，并等待DTU数据返回
+    /// </summary>
+    /// <param name="protocol">协议Id，0是宏电协议，1是TCP协议</param>
+    /// <param name="dtuid">宏电ID或是TCP通讯的标志</param>
+    /// <param name="frame">要发送的数据帧</param>
+    /// <returns>返回的数据帧</returns>
+    public byte[] request(int protocol, String id, byte[] frame)
+    {
+        try
+        {
+            //组建命令
+            String cmd = buildCmd(protocol, id, frame);
+            //发送命令
+            sendCmd(cmd);
+
+            //接收命令            
+            String retString = recvCmd();
+
+            //解析命令
+            String retId = "";
+            int retCmdSeq = 0;							   //ref 2ge 
+            byte[] retFrame = parseCmd(protocol, retString, retId, retCmdSeq);
+
+
+            //如果是发一个，收一个，不会出错命令序号错误，
+            //有就可能是上次没收完超时了。所以超时时间要设置比较大，大于DSC配置配置文件的[TCP]timeout_los。
+
+            if (retCmdSeq != cmdSeq)
+            {
+               // throw new DSCException("DSC命令序号错误！");
+            	throw new RuntimeException("DSC命令序号错误！");
+            }
+
+            if (!id.equals(retId))
+            {
+                //throw new DSCException("返回ID错误！");
+            	throw new RuntimeException("返回ID错误！");
+            }
+            return retFrame;
+        }
+        catch (Exception ex)
+        {
+            throw new RuntimeException();
+        }
+    }
+    
+    
+  /// <summary>
+    /// 异步调用数据请求
+    /// </summary>
+    /// <param name="protocol">协议Id，0是宏电协议，1是TCP协议</param>
+    /// <param name="dtuid">宏电ID或是TCP通讯的标志</param>
+    /// <param name="frame">要发送的数据帧</param>
+    /// <returns>返回命令序号</returns>			
+    public int requestAsyncCall(int protocol, String id, byte[] frame) throws Exception
+    {
+        //组建命令
+        String cmd = buildCmd(protocol, id, frame);
+        //发送命令
+        sendCmd(cmd);
+        return cmdSeq;
+    }
+    
+    /// 反回响应
+    /// </summary>
+    /// <param name="protocol">协议Id，0是宏电协议，1是TCP协议</param>
+    /// <param name="retId">ID</param>
+    /// <param name="retCmdSeq">命令序号</param>
+    /// <returns>返回的数据帧</returns>		//2ge  ref
+    public byte[] response(int protocol, String retId, int retCmdSeq) throws Exception
+    {
+
+        String retString = "";
+
+        //接收命令            
+        retString = recvCmd();
+        //解析命令							//2ge ref
+        return parseCmd(protocol, retString, retId, retCmdSeq);
+
+    }
+    
+    
+    
+    
+    
+  /// <summary>
+    /// 字节数组转16进字符串
+    public static String getHexString(byte[] b) throws Exception {
+		  String result = "";
+		  for (int i=0; i < b.length; i++) {
+		    result += Integer.toString( ( b[i] & 0xff ) + 0x100, 16).substring( 1 );
+		  }
+		  return result;
+	}
+    
+    
+  /// 取tag前面串
+    /// </summary>
+    /// <param name="s"></param>
+    /// <param name="tag"></param>
+    /// <param name="wait"></param>
+    /// <returns></returns>//1 ref
+    private String StrSplit(String s, String tag, boolean wait)
+    {
+        int p = s.indexOf(tag);//tag第一次出现的位置
+        String ret = "";
+        if (p == -1)//没有tag就返回S
+        {
+            if (wait)
+            {
+                ret = s;
+                s = "";
+            }
+        }
+        else
+        {
+            //ret＝P前面的字符，s＝tag
+            ret = s.substring(0, p);
+            s = s.substring(p + tag.length());
+        }
+        return ret;
+    }
+    
+    
+    public static byte[] StrToByte(String data)
+    {
+        byte[] bsd = new byte[data.length() /2 ];
+        for (int i = 0; i < bsd.length; i++)
+        {
+            //String s = "" + data[i * 2] + data[i * 2 + 1];
+        	//count += 2;
+        	String s = "" + data.substring(i*2, i*2+2);
+        	
+            //byte b = byte.Parse(Convert.ToInt32(s, 16).ToString());
+        	
+        	//byte b = Byte.parseByte(new Integer(Integer.parseInt(s, 16)).toString());
+        	byte b = Integer.valueOf(s,16).byteValue();
+        	bsd[i] = b;
+        }
+        return bsd;
+    }
+}
